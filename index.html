@@ -34,7 +34,12 @@ section[hidden]{display:none}
 label{display:block;font-size:14px;color:var(--mute);margin-bottom:12px}
 label:last-child{margin-bottom:0}
 input{display:block;width:100%;margin-top:4px;font:16px Rubik,Arial,sans-serif;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:48px}
-input[hidden]{display:none!important}
+[hidden]{display:none!important}
+input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
+#tab-set.locked .mic{display:none}
+#tab-set.locked .mw input{padding-inline-end:12px}
+.sig.lk canvas{pointer-events:none}.sig.lk .ph{display:none}
+.lockNote{font-size:13px;color:var(--mute);margin:-4px 0 12px}
 .mw{position:relative;display:block;margin-top:4px}.mw input{margin-top:0;padding-inline-end:52px}
 .mic{position:absolute;inset-inline-end:4px;top:50%;transform:translateY(-50%);width:44px;height:40px;border:0;border-radius:9px;background:transparent;color:var(--mute);display:grid;place-items:center;cursor:pointer}
 .mic svg{width:22px;height:22px}.mic:focus-visible{outline:3px solid var(--pen)}
@@ -62,7 +67,7 @@ input.err{border-color:var(--err)}
 .msg{padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:15px}
 .msg.warn{background:color-mix(in srgb,var(--acc) 14%,var(--card));border:1px solid var(--acc)}
 .msg.bad{background:color-mix(in srgb,var(--err) 12%,var(--card));border:1px solid var(--err)}
-.msg:empty{display:none}
+.msg:empty,.msg[hidden],.bar[hidden]{display:none}
 .go{position:fixed;bottom:0;inset-inline:0;padding:12px max(4vw,12px) calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);z-index:4}
 .go .btn{width:100%;max-width:680px;margin:0 auto;display:flex;font-size:18px;min-height:56px}
 .sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
@@ -114,7 +119,7 @@ input.filled{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,va
     </div>
     <button class="scan" id="scanBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>
-      <span>צילום רישיון רכב<small id="scanSub">מספר הרכב, שנת הייצור ופרטי הבעלים יתמלאו לבד</small></span>
+      <span>צילום רישיון רכב<small id="scanSub">מספר הרכב, שנת הייצור, הבעלים והכתובת יתמלאו לבד</small></span>
     </button>
     <input id="scanFile" type="file" accept="image/*" capture="environment" hidden>
     <p id="scanMsg" class="scanMsg"></p>
@@ -171,6 +176,7 @@ input.filled{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,va
     <div id="setMsg" class="msg"></div>
     <div class="card">
       <h2>פרטי הרוכש (נשמרים פעם אחת)</h2>
+      <p class="lockNote" id="lockNote" hidden>הפרטים נעולים. כדי לשנות, לוחצים "עריכה" למטה.</p>
       <label>שם הרוכש<input id="b_name" autocomplete="name"></label>
       <div class="row wrap">
         <label>ת"ז<input id="b_id" inputmode="numeric"><span class="hint" id="h_b_id"></span></label>
@@ -187,12 +193,22 @@ input.filled{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,va
       <div class="sig" id="sigBuyerBox"><canvas id="sigBuyer"></canvas><div class="base"></div><div class="ph">לחתום פעם אחת, והיא תיכנס לכל הסכם</div></div>
       <div class="bar"><button class="btn sm" id="clrBuyer">ניקוי חתימה</button></div>
     </div>
-    <div class="bar" style="margin-bottom:22px"><button class="btn pri" id="saveSet">שמירת הפרטים</button><span id="setOk" class="note ok"></span></div>
+    <div class="bar" style="margin-bottom:22px"><button class="btn pri" id="saveSet">שמירת פרטים</button><span id="setOk" class="note ok"></span></div>
     <div class="card">
       <h2>גיבוי</h2>
       <p class="small" style="margin-top:0">ההיסטוריה נשמרת בטלפון הזה. כדאי לשמור גיבוי מדי פעם, ואפשר גם להעביר אותו לטלפון אחר.</p>
       <div class="bar"><button class="btn sm" id="exp">שמירת קובץ גיבוי</button><label class="btn sm" style="margin:0">טעינת גיבוי<input id="imp" type="file" accept=".json,application/json" hidden></label></div>
       <p id="bkNote" class="note"></p>
+    </div>
+    <div class="card">
+      <h2>איפוס</h2>
+      <p class="small" style="margin-top:0">מוחק את כל הפרטים בעמוד הזה: השם, ת"ז, טלפון, כתובת, עיר, מחיר ברירת מחדל והחתימה שלך. ההיסטוריה של ההסכמים לא נמחקת.</p>
+      <div class="bar" id="rstBar"><button class="btn sm danger" id="rst">איפוס הפרטים שלי</button></div>
+      <div class="msg bad" id="rstAsk" hidden style="margin:10px 0 0">
+        <b>בטוח לאפס?</b> כל הפרטים והחתימה בעמוד הזה יימחקו, ואי אפשר לבטל.
+        <div class="bar"><button class="btn sm pri" id="rstYes" style="background:var(--err);border-color:var(--err)">כן, לאפס</button><button class="btn sm" id="rstNo">ביטול</button></div>
+      </div>
+      <p id="rstNote" class="note"></p>
     </div>
   </section>
 </main>
@@ -359,7 +375,7 @@ function checkId(inp,h){$(h).textContent=idOk($(inp).value)?'':'מספר ת"ז �
 function showBuyer(){$('buyerName').textContent=settings.name||'עוד לא הוזנו פרטים';
   $('newMsg').innerHTML=(!settings.name||!settings.sig)?'צריך למלא פעם אחת את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".':'';
   $('newMsg').className='msg'+((!settings.name||!settings.sig)?' warn':'')}
-function loadSettings(){['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=settings[k]||'');sigBuyer.set(settings.sig||'');checkId('b_id','h_b_id')}
+function loadSettings(){setLocked(!!(settings.name&&settings.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=settings[k]||'');sigBuyer.set(settings.sig||'');checkId('b_id','h_b_id')}
 
 /* ---------- tabs ---------- */
 function tab(name){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===name));
@@ -383,10 +399,15 @@ $('resetForm').onclick=()=>{if(!resetArm){resetArm=true;$('resetForm').textConte
   resetArm=false;$('resetForm').textContent='ניקוי כל הטופס';newForm()};
 function newForm(){document.querySelectorAll('input.filled').forEach(i=>i.classList.remove('filled'));$('scanMsg').textContent='';lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
 
-$('saveSet').onclick=()=>{const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
+let locked=false;
+function setLocked(on){locked=on;['name','id','phone','address','city','price'].forEach(k=>{const i=$('b_'+k);i.readOnly=on;i.classList.toggle('lk',on)});
+  $('sigBuyerBox').classList.toggle('lk',on);$('clrBuyer').hidden=on;$('tab-set').classList.toggle('locked',on);$('lockNote').hidden=!on;
+  $('saveSet').textContent=on?'עריכה':'שמירת פרטים'}
+$('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';$('b_name').focus();return}
+  const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
   if(!n.name||!n.sig){$('setMsg').className='msg bad';$('setMsg').textContent='צריך לפחות שם וחתימה.';return}
   settings=n;if(!lsSet('tow.settings',settings)){$('setMsg').className='msg bad';$('setMsg').textContent='השמירה נכשלה בדפדפן הזה.';return}
-  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='נשמר';showBuyer();
+  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='נשמר';setLocked(true);showBuyer();
   if(!$('f_price').value&&settings.price){$('f_price').value=settings.price;if(!wordsTouched)$('f_words').value=shekelWords(settings.price)}};
 
 /* ---------- create agreement ---------- */
@@ -458,11 +479,19 @@ $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)ret
   catch(err){$('bkNote').className='note';$('bkNote').textContent='הקובץ לא נראה כמו גיבוי של האפליקציה.'}
   e.target.value=''});
 
+/* ---------- reset my details ---------- */
+$('rst').onclick=()=>{$('rstAsk').hidden=false;$('rstBar').hidden=true;$('rstNote').textContent='';$('rstNo').focus()};
+$('rstNo').onclick=()=>{$('rstAsk').hidden=true;$('rstBar').hidden=false};
+$('rstYes').onclick=()=>{settings={};setLocked(false);try{localStorage.removeItem('tow.settings')}catch(e){}
+  ['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value='');sigBuyer.clear();checkId('b_id','h_b_id');
+  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='';
+  $('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').className='note ok';$('rstNote').textContent='הפרטים אופסו. אפשר למלא מחדש.';showBuyer();window.scrollTo(0,0)};
+
 /* ---------- scan vehicle licence ---------- */
 let samplerP=null;
 const getSampler=()=>{if(!samplerP)samplerP=(async()=>{if(!(window.claude&&window.claude.use))return null;try{const s=await window.claude.use('sample');if(!s)return null;const l=await s.limits().catch(()=>null);return l&&l.images?s:null}catch(e){return null}})();return samplerP};
-const SCAN_PROMPT='התמונה היא צילום של רישיון רכב ישראלי (ייתכן שהוא מסובב או מצולם בזווית). חלץ ממנו את הפרטים והחזר רק JSON בצורה הזו:\n{"car_number":"9953931","year":"2015","owner_name":"ישראל ישראלי","owner_id":"037398328"}\n'+
- 'car_number: "מספר רכב", ספרות בלבד בלי מקפים. year: שנת הייצור (שנת ייצור); אם אין, השנה מתוך "מועד עליה לכביש". owner_name: שם הבעלים כפי שמופיע ברישיון. owner_id: מספר הזהות של הבעלים, 9 ספרות כולל ספרת הביקורת שאחרי המקף. שדה שלא רואים בבירור: null. אל תנחש.';
+const SCAN_PROMPT='התמונה היא צילום של רישיון רכב ישראלי (ייתכן שהוא מסובב או מצולם בזווית). חלץ ממנו את הפרטים והחזר רק JSON בצורה הזו:\n{"car_number":"9953931","year":"2015","owner_name":"ישראל ישראלי","owner_id":"037398328","owner_address":"הרצל 12","owner_city":"כפר סבא"}\n'+
+ 'car_number: "מספר רכב", ספרות בלבד בלי מקפים. year: שנת הייצור (שנת ייצור); אם אין, השנה מתוך "מועד עליה לכביש". owner_name: שם הבעלים כפי שמופיע ברישיון. owner_id: מספר הזהות של הבעלים, 9 ספרות כולל ספרת הביקורת שאחרי המקף. הכתובת של הבעלים מופיעה ברישיון בשדה "מען" או "כתובת", בדרך כלל בצורה "רחוב מספר עיר-מיקוד": owner_address הוא הרחוב ומספר הבית, owner_city הוא שם העיר בלבד, בלי המיקוד. שדה שלא רואים בבירור: null. אל תנחש.';
 function imgToCanvas(file,maxSide,rot){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,maxSide/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
   const c=document.createElement('canvas'),sw=rot%180?h:w,sh=rot%180?w:h;c.width=sw;c.height=sh;const x=c.getContext('2d');x.translate(sw/2,sh/2);x.rotate(rot*Math.PI/180);x.drawImage(im,-w/2,-h/2,w,h);URL.revokeObjectURL(u);res(c)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
 function loadScript(src){return new Promise((res,rej)=>{if(window.Tesseract)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.append(s)})}
@@ -471,22 +500,30 @@ function parseOcr(t){const out={};const flat=t.replace(/[Oo]/g,'0');
   if(!out.owner_id){for(const n of flat.match(/\b\d{9}\b/g)||[])if(idOk(n)&&!/^0{3}/.test(n)){out.owner_id=n;break}}
   m=flat.match(/מספר\s*רכב[^\d]{0,25}(\d{2,3}[- ]?\d{2,3}[- ]?\d{2,3})/);
   if(m)out.car_number=m[1].replace(/\D/g,'');
-  if(!out.car_number){const c=(flat.match(/\b\d{7,8}\b/g)||[]).find(n=>!(out.owner_id||'').includes(n));if(c)out.car_number=c}
+  if(!out.car_number){const zips=[...flat.matchAll(/[א-ת]\s*-\s*(\d{5,7})/g)].map(x=>x[1]);const c=(flat.match(/\b\d{7,8}\b/g)||[]).find(n=>!(out.owner_id||'').includes(n)&&!zips.includes(n));if(c)out.car_number=c}
   m=flat.match(/שנת\s*יי?צור[^\d]{0,15}((?:19|20)\d{2})/)||flat.match(/(?:לכביש|עליה)[^\d]{0,25}\d{1,2}\s*\/\s*((?:19|20)\d{2})/)||flat.match(/\d{1,2}\s*\/\s*((?:19|20)\d{2})[^\d\n]{0,25}(?:עליה|לכביש)/);
   if(m)out.year=m[1];else{const ys=[...flat.matchAll(/\b\d{2}\/((?:19|20)\d{2})\b/g)].map(x=>+x[1]).filter(y=>y<=new Date().getFullYear());if(ys.length)out.year=String(Math.min(...ys))}
   m=t.match(/שם\s*(?:ה)?בעלים[:\s]+([א-ת'"׳ ]{3,30})/);if(m)out.owner_name=m[1].trim();
+  {const lines=t.split('\n');const ml=lines.find(l=>/מען|כתובת/.test(l))||lines.find(l=>/[א-ת]\s*-\s*\d{5,7}/.test(l))||'';
+    const src=ml.replace(/^.*?(?:מען|כתובת)[:\s]*/,'');
+    const a=src.match(/([א-ת"'׳][א-ת"'׳ ]{1,25}?)?\s*(\d{1,4})\s+([א-ת"'׳][א-ת"'׳ ]{1,25}?)\s*-\s*\d{5,7}/);
+    if(a){if(a[1]&&a[1].trim().length>=2)out.owner_address=(a[1].trim()+' '+a[2]);out.owner_city=a[3].trim()}
+    else{const b=src.match(/([א-ת"'׳][א-ת"'׳ ]{1,25}?)\s+(\d{1,4})\s+([א-ת"'׳][א-ת"'׳ ]{1,25})/);if(b){out.owner_address=b[1].trim()+' '+b[2];out.owner_city=b[3].trim()}}}
   if(!out.owner_name&&out.owner_id){const line=t.split('\n').find(l=>/\d{8}\s*[-–]\s*\d|\d{9}/.test(l.replace(/[Oo]/g,'0')));
     if(line){const w=(line.match(/[א-ת'"׳]{2,}/g)||[]).filter(x=>!/^(מספר|זהות|בעלים|שם|ת"ז)$/.test(x));if(w.length>=2)out.owner_name=w.slice(-3).join(' ')}}
   return out}
 async function ocrLocal(file,say){say('טוען את קורא הטקסט (פעם ראשונה לוקח קצת זמן)…');
   await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
-  const w=await Tesseract.createWorker('heb+eng');let best={score:-1,out:{}};
+  const w=await Tesseract.createWorker('heb+eng');const runs=[];
   try{for(const rot of [0,90,270]){say('קורא את הרישיון…');const c=await imgToCanvas(file,2000,rot);const {data}=await w.recognize(c);const out=parseOcr(data.text);
-    const score=(out.car_number?2:0)+(out.owner_id?2:0)+(out.year?1:0)+data.confidence/100;if(score>best.score)best={score,out};if(out.car_number&&out.owner_id&&out.year)break}}
-  finally{w.terminate()}return best.out}
+    runs.push({out,score:Object.keys(out).length+data.confidence/100});
+    const m=merge(runs);if(['car_number','owner_id','year','owner_name','owner_city'].every(k=>m[k]))break}}
+  finally{w.terminate()}return merge(runs)}
+function merge(runs){const m={};runs.slice().sort((a,b)=>b.score-a.score).forEach(r=>{for(const k in r.out)if(!m[k])m[k]=r.out[k]});
+  if(m.owner_address&&!m.owner_city){const r=runs.find(x=>x.out.owner_city);if(r)m.owner_city=r.out.owner_city}return m}
 function applyScan(r){const set=(k,v)=>{v=v==null?'':String(v).trim();if(!v||v==='null')return 0;const el=$('f_'+k);el.value=v;el.classList.add('filled');el.classList.remove('err');return 1};
   let n=0;n+=set('car',String(r.car_number||'').replace(/\D/g,''));const y=String(r.year||'').match(/(19|20)\d{2}/);if(y)n+=set('year',y[0]);
-  n+=set('s_name',r.owner_name);n+=set('s_id',String(r.owner_id||'').replace(/\D/g,''));checkId('f_s_id','h_s_id');saveDraft();return n}
+  n+=set('s_name',r.owner_name);n+=set('s_id',String(r.owner_id||'').replace(/\D/g,''));n+=set('s_address',r.owner_address);n+=set('s_city',String(r.owner_city||'').replace(/\s*-?\s*\d{5,7}\s*$/,''));checkId('f_s_id','h_s_id');saveDraft();return n}
 $('scanBtn').onclick=()=>$('scanFile').click();
 $('scanFile').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;
   const msg=$('scanMsg'),btn=$('scanBtn');const say=t=>{msg.className='scanMsg';msg.textContent=t};btn.disabled=true;
@@ -499,7 +536,7 @@ $('scanFile').addEventListener('change',async e=>{const file=e.target.files[0];e
   catch(err){msg.className='scanMsg bad';const c=err&&err.code;
     msg.textContent=c==='not_granted'?'צריך לאשר ל-Claude לקרוא את התמונה כדי שזה יעבוד.':c==='rate_limited'?'יותר מדי בקשות כרגע. לנסות שוב עוד דקה.':c==='image_rejected'?'התמונה לא מתאימה. לנסות לצלם שוב.':(err&&err.message==='script')?'אין חיבור לאינטרנט לטעינת קורא הטקסט.':'לא הצלחתי לקרוא את הרישיון. לנסות לצלם שוב.'}
   finally{btn.disabled=false}});
-['car','year','s_name','s_id'].forEach(k=>$('f_'+k).addEventListener('input',()=>$('f_'+k).classList.remove('filled')));
+['car','year','s_name','s_id','s_address','s_city'].forEach(k=>$('f_'+k).addEventListener('input',()=>$('f_'+k).classList.remove('filled')));
 
 /* ---------- microphone in every field ---------- */
 const MIC_FIELDS=['f_car','f_year','f_price','f_words','f_s_name','f_s_id','f_s_phone','f_s_address','f_s_city','b_name','b_id','b_phone','b_address','b_city','b_price','q'];
@@ -516,7 +553,7 @@ function micHideAll(){document.querySelectorAll('.mic').forEach(b=>b.hidden=true
 function micClick(btn,inp){
   if(micBtn===btn){if(micEngine==='claude')claudeDict.stop();else if(micRec)micRec.stop();return}
   if(micBtn){if(micEngine==='claude')claudeDict.stop();else if(micRec)micRec.abort();micOff()}
-  micBtn=btn;micInput=inp;micBase=inp.value.trim();btn.classList.add('on');btn.setAttribute('aria-pressed','true');
+  micBtn=btn;micInput=inp;micBase='';btn.classList.add('on');btn.setAttribute('aria-pressed','true');
   if(micEngine==='claude'){claudeDict.start({language:'he'}).catch(e=>{const c=e&&e.code;micOff();
       if(c==='not_granted'){micHideAll();micToast('אין אישור למיקרופון. אפשר להשתמש במיקרופון של המקלדת.')}else if(c==='unavailable'){micHideAll();micToast('הכתבה לא זמינה כאן.')}else if(c!=='stopped')micToast('המיקרופון לא הצליח. לנסות שוב.')});return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;micRec=new SR();micRec.lang='he-IL';micRec.interimResults=true;micRec.continuous=false;micRec.maxAlternatives=1;
