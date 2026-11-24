@@ -35,13 +35,16 @@ label{display:block;font-size:14px;color:var(--mute);margin-bottom:12px}
 label:last-child{margin-bottom:0}
 input{display:block;width:100%;margin-top:4px;font:16px Rubik,Arial,sans-serif;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:48px}
 [hidden]{display:none!important}
+input[type=tel]{direction:ltr;text-align:right}
+.mw input[type=tel]{padding-left:44px;padding-right:10px}
+.btn.clrBig{display:flex;width:100%;min-height:60px;margin-bottom:14px;font-size:19px;font-weight:700;border:2px solid var(--err);color:var(--err);background:var(--card)}
 input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
 #tab-set.locked .mic{display:none}
 #tab-set.locked .mw input{padding-inline-end:12px}
 .sig.lk canvas{pointer-events:none}.sig.lk .ph{display:none}
 .lockNote{font-size:13px;color:var(--mute);margin:-4px 0 12px}
-.mw{position:relative;display:block;margin-top:4px}.mw input{margin-top:0;padding-inline-end:52px}
-.mic{position:absolute;inset-inline-end:4px;top:50%;transform:translateY(-50%);width:44px;height:40px;border:0;border-radius:9px;background:transparent;color:var(--mute);display:grid;place-items:center;cursor:pointer}
+.mw{position:relative;display:block;margin-top:4px}.mw input{margin-top:0;padding-inline-end:46px}
+.mic{position:absolute;inset-inline-end:3px;top:50%;transform:translateY(-50%);width:38px;height:40px;border:0;border-radius:9px;background:transparent;color:var(--mute);display:grid;place-items:center;cursor:pointer}
 .mic svg{width:22px;height:22px}.mic:focus-visible{outline:3px solid var(--pen)}
 .mic.on{background:var(--err);color:#fff}
 @media(prefers-reduced-motion:no-preference){.mic.on{animation:pulse 1.1s ease-in-out infinite}@keyframes pulse{50%{opacity:.6}}}
@@ -113,10 +116,12 @@ input.filled{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,va
 <main>
   <section id="tab-new">
     <div id="newMsg" class="msg"></div>
-    <div class="card buyer">
-      <div><span class="small">הרוכש</span><br><b id="buyerName">—</b></div>
-      <button class="btn sm" data-goto="set">עריכה</button>
+    <button class="btn clrBig" id="clrAll" type="button">נקה דף</button>
+    <div class="msg bad" id="clrAsk" hidden>
+      <b>לנקות את הטופס?</b> כל השדות של ההסכם הזה וחתימת המוכר יימחקו. הפרטים שלך נשארים, וגם הסכמים שכבר נשמרו בהיסטוריה.
+      <div class="bar"><button class="btn sm pri" id="clrYes" style="background:var(--err);border-color:var(--err)">כן, לנקות</button><button class="btn sm" id="clrNo">ביטול</button></div>
     </div>
+    <p id="clrDone" class="note ok" hidden style="margin:-6px 0 12px"></p>
     <button class="scan" id="scanBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>
       <span>צילום רישיון רכב<small id="scanSub">מספר הרכב, שנת הייצור, הבעלים והכתובת יתמלאו לבד</small></span>
@@ -367,12 +372,13 @@ function fillDefaults(force){const d=force?{}:lsGet('tow.draft',{});
   if(!$('f_resp').value)$('f_resp').value=$('f_date').value;
   if(!$('f_hour').value)$('f_hour').value=nowHM();
   if(!$('f_price').value&&settings.price)$('f_price').value=settings.price;
-  wordsTouched=!!d.wordsTouched;if(!wordsTouched)$('f_words').value=shekelWords($('f_price').value);
+  wordsTouched=!!d.wordsTouched;pendingId=d.pendingId||null;if(!wordsTouched)$('f_words').value=shekelWords($('f_price').value);
   checkId('f_s_id','h_s_id')}
-const saveDraft=()=>{const d={wordsTouched};FIELDS.forEach(k=>d[k]=$('f_'+k).value);lsSet('tow.draft',d)};
+let pendingId=null;
+const saveDraft=()=>{const d={wordsTouched,pendingId};FIELDS.forEach(k=>d[k]=$('f_'+k).value);lsSet('tow.draft',d)};
 function checkId(inp,h){$(h).textContent=idOk($(inp).value)?'':'מספר ת"ז לא תקין, כדאי לבדוק'}
 
-function showBuyer(){$('buyerName').textContent=settings.name||'עוד לא הוזנו פרטים';
+function showBuyer(){
   $('newMsg').innerHTML=(!settings.name||!settings.sig)?'צריך למלא פעם אחת את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".':'';
   $('newMsg').className='msg'+((!settings.name||!settings.sig)?' warn':'')}
 function loadSettings(){setLocked(!!(settings.name&&settings.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=settings[k]||'');sigBuyer.set(settings.sig||'');checkId('b_id','h_b_id')}
@@ -397,12 +403,15 @@ $('clrBuyer').onclick=()=>sigBuyer.clear();
 let resetArm=false;
 $('resetForm').onclick=()=>{if(!resetArm){resetArm=true;$('resetForm').textContent='ללחוץ שוב לאישור';setTimeout(()=>{resetArm=false;$('resetForm').textContent='ניקוי כל הטופס'},3000);return}
   resetArm=false;$('resetForm').textContent='ניקוי כל הטופס';newForm()};
-function newForm(){document.querySelectorAll('input.filled').forEach(i=>i.classList.remove('filled'));$('scanMsg').textContent='';lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
+function newForm(){pendingId=null;$('clrAsk').hidden=true;document.querySelectorAll('input.filled').forEach(i=>i.classList.remove('filled'));$('scanMsg').textContent='';lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
 
 let locked=false;
 function setLocked(on){locked=on;['name','id','phone','address','city','price'].forEach(k=>{const i=$('b_'+k);i.readOnly=on;i.classList.toggle('lk',on)});
   $('sigBuyerBox').classList.toggle('lk',on);$('clrBuyer').hidden=on;$('tab-set').classList.toggle('locked',on);$('lockNote').hidden=!on;
   $('saveSet').textContent=on?'עריכה':'שמירת פרטים'}
+$('clrAll').onclick=()=>{$('clrAsk').hidden=false;$('clrDone').hidden=true;$('clrNo').focus()};
+$('clrNo').onclick=()=>{$('clrAsk').hidden=true};
+$('clrYes').onclick=()=>{newForm();$('clrDone').textContent='הטופס נוקה. אפשר להתחיל הסכם חדש.';$('clrDone').hidden=false};
 $('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';$('b_name').focus();return}
   const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
   if(!n.name||!n.sig){$('setMsg').className='msg bad';$('setMsg').textContent='צריך לפחות שם וחתימה.';return}
@@ -412,6 +421,7 @@ $('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';
 
 /* ---------- create agreement ---------- */
 $('make').onclick=async()=>{
+  $('clrDone').hidden=true;
   const msg=$('newMsg');const bad=[];
   if(!settings.name||!settings.sig){msg.className='msg bad';msg.innerHTML='קודם צריך למלא את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".';window.scrollTo(0,0);return}
   [['car','מספר רכב'],['price','מחיר'],['s_name','שם המוכר']].forEach(([k,l])=>{if(!$('f_'+k).value.trim()){$('f_'+k).classList.add('err');bad.push(l)}});
@@ -419,11 +429,11 @@ $('make').onclick=async()=>{
   if(bad.length){msg.className='msg bad';msg.textContent='חסר: '+bad.join(', ');window.scrollTo(0,0);return}
   msg.className='msg';msg.textContent='';
   const v=k=>$('f_'+k).value.trim();
-  const rec={id:Date.now(),created:new Date().toISOString(),car:v('car'),year:v('year'),date:v('date'),price:parseFloat(v('price').replace(/[^\d.]/g,''))||0,words:v('words'),respDate:v('resp'),hour:v('hour'),
+  const rec={id:pendingId||Date.now(),created:new Date().toISOString(),car:v('car'),year:v('year'),date:v('date'),price:parseFloat(v('price').replace(/[^\d.]/g,''))||0,words:v('words'),respDate:v('resp'),hour:v('hour'),
     seller:{name:v('s_name'),id:v('s_id'),phone:v('s_phone'),address:v('s_address'),city:v('s_city')},sellerSig:sigSeller.trimmed(),
     buyer:{name:settings.name,id:settings.id,phone:settings.phone,address:settings.address,city:settings.city,sig:settings.sig}};
   $('make').disabled=true;$('make').textContent='יוצר…';
-  try{await store.put(rec);lsSet('tow.draft',{});await openSheet(rec,true)}
+  try{await store.put(rec);pendingId=rec.id;saveDraft();await openSheet(rec,true)}
   catch(e){msg.className='msg bad';msg.textContent='משהו נכשל בשמירה: '+(e.message||e)}
   finally{$('make').disabled=false;$('make').textContent='יצירת הסכם PDF'}};
 
@@ -431,7 +441,7 @@ $('make').onclick=async()=>{
 let cur=null;
 const waNum=p=>{let d=String(p||'').replace(/\D/g,'');if(!d)return '';if(d.startsWith('0'))d='972'+d.slice(1);return d};
 async function openSheet(rec,fresh){const c=await drawDoc(rec);const {blob,preview}=canvasToPdf(c);
-  cur={rec,blob,name:'הסכם מכירה '+rec.car+' '+fmtD(rec.date).replace(/\//g,'-')+'.pdf'};
+  cur={rec,blob,fresh,name:'הסכם מכירה '+rec.car+' '+fmtD(rec.date).replace(/\//g,'-')+'.pdf'};
   $('shImg').src=preview;$('shTitle').textContent=fresh?'ההסכם נשמר ומוכן לשליחה':'הסכם רכב '+rec.car;
   const txt="שלום, מצורף הסכם מכירת שרידי רכב מס' "+rec.car+'.';
   const n=waNum(rec.seller.phone);const wa=$('shWa');
@@ -444,7 +454,10 @@ async function openSheet(rec,fresh){const c=await drawDoc(rec);const {blob,previ
 $('shClose').onclick=()=>{$('sheet').hidden=true};
 $('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))$('sheet').hidden=true});
 $('shNew').onclick=()=>{$('sheet').hidden=true;newForm()};
-$('shShare').onclick=async()=>{if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf');const n=$('shNote');
+function sentDone(){if(cur&&cur.fresh&&pendingId===cur.rec.id){newForm();$('clrDone').textContent='ההסכם נשמר בהיסטוריה, והטופס נוקה להסכם הבא.';$('clrDone').hidden=false}}
+$('shWa').addEventListener('click',()=>setTimeout(sentDone,0));
+$('shMail').addEventListener('click',()=>setTimeout(sentDone,0));
+$('shShare').onclick=async()=>{if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf');const n=$('shNote');if(r==='shared'||r==='saved')sentDone();
   if(r==='shared'){n.className='note ok';n.textContent='נשלח.'}
   else if(r==='saved'){n.className='note ok';n.textContent='הקובץ נשמר. עכשיו לפתוח את הצ׳אט ולצרף אותו.'}
   else if(r==='fail'){n.className='note';n.textContent='לא הצלחתי לשמור כאן. כדאי לפתוח את האפליקציה בדפדפן רגיל.'}};
