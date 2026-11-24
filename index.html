@@ -48,11 +48,19 @@ section[hidden]{display:none}
 .card>h2{padding:12px 0 10px;margin-bottom:12px;border-bottom:2px dashed #cfc6b2}
 .no{flex:none;direction:ltr;padding:3px 8px;border-radius:6px;background:var(--ink);color:var(--yel);font:800 13px Rubik,Arial,sans-serif;letter-spacing:1px}
 .row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-@media(max-width:380px){.row.wrap{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:380px){.row{gap:10px}.row.wrap{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:330px){.row{grid-template-columns:minmax(0,1fr)}}
 label{display:block;font-size:14px;font-weight:500;color:var(--mute);margin-bottom:12px}
 label:last-child{margin-bottom:0}
 #tab-hist>label{color:#ece8dc}
 input{display:block;width:100%;margin-top:4px;font:17px Rubik,Arial,sans-serif;color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:10px;padding:11px 12px;min-height:50px}
+/* every field stays inside its card (iPhone date/time boxes included) */
+input,.mw,.plate{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+input[type=date],input[type=time],input[type=search]{-webkit-appearance:none;appearance:none}
+input[type=date],input[type=time]{display:block;height:50px;line-height:24px;text-align:start}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:start;margin:0}
+input[type=date]::-webkit-datetime-edit,input[type=time]::-webkit-datetime-edit{padding:0}
+label{min-width:0;max-width:100%}
 input::placeholder{color:#77726a}
 input[type=tel]{direction:ltr;text-align:right}
 input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,106,19,.3)}
