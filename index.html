@@ -355,7 +355,7 @@ function canvasToPdf(c){const du=c.toDataURL('image/jpeg',0.9);const bin=atob(du
 /* ---------- delivering files ---------- */
 let dlP=null;const getDl=()=>{if(!dlP)dlP=(window.claude&&window.claude.use)?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);return dlP};
 const canShareFiles=()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'a.pdf',{type:'application/pdf'})]}))}catch(e){return false}};
-async function deliver(blob,name,type,meta){const file=new File([blob],name,{type});
+async function deliver(blob,name,type,meta){const file=new File([blob],name,{type,lastModified:Date.now()});
   if(canShareFiles()){const data={files:[file],title:(meta&&meta.title)||name};if(meta&&meta.text)data.text=meta.text;
     try{if(!navigator.canShare||navigator.canShare(data)){await navigator.share(data);return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancel'}
     try{await navigator.share({files:[file]});return 'shared'}catch(e){if(e&&e.name==='AbortError')return 'cancel'}}
@@ -443,7 +443,7 @@ $('make').onclick=async()=>{
 let cur=null;
 const waNum=p=>{let d=String(p||'').replace(/\D/g,'');if(!d)return '';if(d.startsWith('0'))d='972'+d.slice(1);return d};
 async function openSheet(rec,fresh){const c=await drawDoc(rec);const {blob,preview}=canvasToPdf(c);
-  cur={rec,blob,fresh,name:'הסכם מכירה '+rec.car+' '+fmtD(rec.date).replace(/\//g,'-')+'.pdf'};
+  cur={rec,blob,fresh,name:'agreement-'+(String(rec.car).replace(/[^0-9A-Za-z]/g,'')||'vehicle')+'.pdf'};
   $('shImg').src=preview;$('shTitle').textContent=fresh?'ההסכם נשמר ומוכן לשליחה':'הסכם רכב '+rec.car;
   const txt="שלום, מצורף הסכם מכירת שרידי רכב מס' "+rec.car+'.';
   const n=waNum(rec.seller.phone);const wa=$('shWa');
@@ -458,7 +458,7 @@ $('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))$('sheet').hidd
 $('shNew').onclick=()=>{$('sheet').hidden=true;newForm()};
 function sentDone(){if(cur&&cur.fresh&&pendingId===cur.rec.id){newForm();$('clrDone').textContent='ההסכם נשמר בהיסטוריה, והטופס נוקה להסכם הבא.';$('clrDone').hidden=false}}
 $('shWa').addEventListener('click',()=>setTimeout(sentDone,0));
-async function sendPdf(){if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf',{title:cur.title,text:cur.text});const n=$('shNote');if(r==='shared'||r==='saved')sentDone();
+async function sendPdf(){if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf',{title:cur.name});const n=$('shNote');if(r==='shared'||r==='saved')sentDone();
   if(r==='shared'){n.className='note ok';n.textContent='נשלח.'}
   else if(r==='saved'){n.className='note ok';n.textContent='השיתוף לא זמין כאן, אז ה-PDF הורד. אפשר לצרף אותו מהקבצים במייל או בוואטסאפ.'}
   else if(r==='fail'){n.className='note';n.textContent='לא הצלחתי לשמור כאן. כדאי לפתוח את האפליקציה בדפדפן רגיל.'}}
@@ -485,7 +485,7 @@ $('list').addEventListener('click',async e=>{const o=e.target.closest('[data-ope
 
 /* ---------- backup ---------- */
 $('exp').onclick=async()=>{const data=JSON.stringify({app:'tow-forms',v:1,settings,deals:await store.all()});
-  const r=await deliver(new Blob([data],{type:'application/json'}),'גיבוי הסכמי גרר '+fmtD(todayISO()).replace(/\//g,'-')+'.json','application/json');
+  const r=await deliver(new Blob([data],{type:'application/json'}),'tow-backup-'+todayISO()+'.json','application/json');
   $('bkNote').className='note'+(r==='fail'?'':' ok');$('bkNote').textContent=r==='fail'?'לא הצלחתי לשמור כאן.':(r==='cancel'?'':'הגיבוי נשמר.')};
 $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(!Array.isArray(j.deals))throw 0;for(const d of j.deals)await store.put(d);
