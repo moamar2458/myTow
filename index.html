@@ -226,7 +226,7 @@ input.filled{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,va
     <div class="acts">
       <button class="btn pri" id="shShare">שליחה בוואטסאפ / מייל</button>
       <a class="btn wa" id="shWa" target="_blank" rel="noopener">צ'אט עם המוכר</a>
-      <a class="btn" id="shMail">מייל</a>
+      <button class="btn" id="shMail" type="button">מייל</button>
       <button class="btn" id="shNew" style="grid-column:1/-1">הסכם חדש</button>
     </div>
     <p id="shNote" class="note"></p>
@@ -355,8 +355,10 @@ function canvasToPdf(c){const du=c.toDataURL('image/jpeg',0.9);const bin=atob(du
 /* ---------- delivering files ---------- */
 let dlP=null;const getDl=()=>{if(!dlP)dlP=(window.claude&&window.claude.use)?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);return dlP};
 const canShareFiles=()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'a.pdf',{type:'application/pdf'})]}))}catch(e){return false}};
-async function deliver(blob,name,type){const file=new File([blob],name,{type});
-  if(canShareFiles()){try{await navigator.share({files:[file],title:name});return 'shared'}catch(e){if(e&&e.name==='AbortError')return 'cancel'}}
+async function deliver(blob,name,type,meta){const file=new File([blob],name,{type});
+  if(canShareFiles()){const data={files:[file],title:(meta&&meta.title)||name};if(meta&&meta.text)data.text=meta.text;
+    try{if(!navigator.canShare||navigator.canShare(data)){await navigator.share(data);return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancel'}
+    try{await navigator.share({files:[file]});return 'shared'}catch(e){if(e&&e.name==='AbortError')return 'cancel'}}
   const d=await getDl();if(d){try{await d.save({filename:name,data:blob});return 'saved'}catch(e){if(e&&e.code==='declined')return 'cancel'}}
   try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();return 'saved'}catch(e){return 'fail'}}
 
@@ -446,8 +448,8 @@ async function openSheet(rec,fresh){const c=await drawDoc(rec);const {blob,previ
   const txt="שלום, מצורף הסכם מכירת שרידי רכב מס' "+rec.car+'.';
   const n=waNum(rec.seller.phone);const wa=$('shWa');
   if(n){wa.href='https://wa.me/'+n+'?text='+encodeURIComponent(txt);wa.hidden=false}else wa.hidden=true;
-  $('shMail').href='mailto:?subject='+encodeURIComponent("הסכם מכירה – רכב "+rec.car)+'&body='+encodeURIComponent(txt);
-  $('shShare').textContent=canShareFiles()?'שליחה בוואטסאפ / מייל':'שמירת ה־PDF';
+  cur.title="הסכם מכירה – רכב "+rec.car;cur.text=txt;
+  $('shShare').textContent=canShareFiles()?'שליחת ה-PDF (וואטסאפ / מייל)':'הורדת ה-PDF';
   $('shNew').hidden=!fresh;
   $('shNote').className='note';$('shNote').textContent=canShareFiles()?'':'אחרי השמירה: לפתוח את הצ׳אט ולצרף את הקובץ מההורדות.';
   $('sheet').hidden=false}
@@ -456,11 +458,11 @@ $('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))$('sheet').hidd
 $('shNew').onclick=()=>{$('sheet').hidden=true;newForm()};
 function sentDone(){if(cur&&cur.fresh&&pendingId===cur.rec.id){newForm();$('clrDone').textContent='ההסכם נשמר בהיסטוריה, והטופס נוקה להסכם הבא.';$('clrDone').hidden=false}}
 $('shWa').addEventListener('click',()=>setTimeout(sentDone,0));
-$('shMail').addEventListener('click',()=>setTimeout(sentDone,0));
-$('shShare').onclick=async()=>{if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf');const n=$('shNote');if(r==='shared'||r==='saved')sentDone();
+async function sendPdf(){if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf',{title:cur.title,text:cur.text});const n=$('shNote');if(r==='shared'||r==='saved')sentDone();
   if(r==='shared'){n.className='note ok';n.textContent='נשלח.'}
-  else if(r==='saved'){n.className='note ok';n.textContent='הקובץ נשמר. עכשיו לפתוח את הצ׳אט ולצרף אותו.'}
-  else if(r==='fail'){n.className='note';n.textContent='לא הצלחתי לשמור כאן. כדאי לפתוח את האפליקציה בדפדפן רגיל.'}};
+  else if(r==='saved'){n.className='note ok';n.textContent='השיתוף לא זמין כאן, אז ה-PDF הורד. אפשר לצרף אותו מהקבצים במייל או בוואטסאפ.'}
+  else if(r==='fail'){n.className='note';n.textContent='לא הצלחתי לשמור כאן. כדאי לפתוח את האפליקציה בדפדפן רגיל.'}}
+$('shShare').onclick=sendPdf;$('shMail').onclick=sendPdf;
 
 /* ---------- history ---------- */
 let all=[];
