@@ -34,6 +34,13 @@ section[hidden]{display:none}
 label{display:block;font-size:14px;color:var(--mute);margin-bottom:12px}
 label:last-child{margin-bottom:0}
 input{display:block;width:100%;margin-top:4px;font:16px Rubik,Arial,sans-serif;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:48px}
+input[hidden]{display:none!important}
+.mw{position:relative;display:block;margin-top:4px}.mw input{margin-top:0;padding-inline-end:52px}
+.mic{position:absolute;inset-inline-end:4px;top:50%;transform:translateY(-50%);width:44px;height:40px;border:0;border-radius:9px;background:transparent;color:var(--mute);display:grid;place-items:center;cursor:pointer}
+.mic svg{width:22px;height:22px}.mic:focus-visible{outline:3px solid var(--pen)}
+.mic.on{background:var(--err);color:#fff}
+@media(prefers-reduced-motion:no-preference){.mic.on{animation:pulse 1.1s ease-in-out infinite}@keyframes pulse{50%{opacity:.6}}}
+.micMsg{position:fixed;inset-inline:12px;bottom:84px;z-index:6;max-width:520px;margin:0 auto;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px}.micMsg[hidden]{display:none}
 input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
 input.err{border-color:var(--err)}
 .hint{display:block;font-size:13px;margin-top:3px;color:var(--err)}
@@ -79,6 +86,12 @@ input.err{border-color:var(--err)}
 .note{font-size:14px;color:var(--mute);margin:10px 0 0}
 .note.ok{color:var(--ok)}
 .small{font-size:13px;color:var(--mute)}
+.scan{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:12px 16px;margin-bottom:14px;border-radius:14px;border:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--card));color:var(--ink);font:700 17px Rubik,Arial,sans-serif;cursor:pointer;text-align:start}
+.scan svg{flex:none;width:34px;height:34px;padding:6px;border-radius:10px;background:var(--acc);color:#fff}
+.scan small{display:block;font-weight:400;font-size:13px;color:var(--mute)}
+.scan[disabled]{opacity:.7;cursor:wait}
+.scanMsg{font-size:14px;margin:-6px 0 12px}.scanMsg:empty{display:none}.scanMsg.ok{color:var(--ok)}.scanMsg.bad{color:var(--err)}
+input.filled{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--bg))}
 @media(prefers-reduced-motion:no-preference){.sheetIn{animation:up .22s ease-out}@keyframes up{from{transform:translateY(40px);opacity:.4}}}
 </style>
 </head>
@@ -99,6 +112,12 @@ input.err{border-color:var(--err)}
       <div><span class="small">הרוכש</span><br><b id="buyerName">—</b></div>
       <button class="btn sm" data-goto="set">עריכה</button>
     </div>
+    <button class="scan" id="scanBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>
+      <span>צילום רישיון רכב<small id="scanSub">מספר הרכב, שנת הייצור ופרטי הבעלים יתמלאו לבד</small></span>
+    </button>
+    <input id="scanFile" type="file" accept="image/*" capture="environment" hidden>
+    <p id="scanMsg" class="scanMsg"></p>
     <div class="card">
       <h2>הרכב</h2>
       <div class="row">
@@ -178,6 +197,7 @@ input.err{border-color:var(--err)}
   </section>
 </main>
 
+<div class="micMsg" id="micMsg" hidden></div>
 <div class="sheet" id="sheet" hidden>
   <div class="sheetIn" role="dialog" aria-modal="true" aria-labelledby="shTitle">
     <div class="sheetHead"><b id="shTitle">ההסכם מוכן</b><button class="btn sm" id="shClose">סגירה</button></div>
@@ -361,7 +381,7 @@ $('clrBuyer').onclick=()=>sigBuyer.clear();
 let resetArm=false;
 $('resetForm').onclick=()=>{if(!resetArm){resetArm=true;$('resetForm').textContent='ללחוץ שוב לאישור';setTimeout(()=>{resetArm=false;$('resetForm').textContent='ניקוי כל הטופס'},3000);return}
   resetArm=false;$('resetForm').textContent='ניקוי כל הטופס';newForm()};
-function newForm(){lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
+function newForm(){document.querySelectorAll('input.filled').forEach(i=>i.classList.remove('filled'));$('scanMsg').textContent='';lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
 
 $('saveSet').onclick=()=>{const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
   if(!n.name||!n.sig){$('setMsg').className='msg bad';$('setMsg').textContent='צריך לפחות שם וחתימה.';return}
@@ -437,6 +457,84 @@ $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)ret
     $('bkNote').className='note ok';$('bkNote').textContent='נטענו '+j.deals.length+' הסכמים.'}
   catch(err){$('bkNote').className='note';$('bkNote').textContent='הקובץ לא נראה כמו גיבוי של האפליקציה.'}
   e.target.value=''});
+
+/* ---------- scan vehicle licence ---------- */
+let samplerP=null;
+const getSampler=()=>{if(!samplerP)samplerP=(async()=>{if(!(window.claude&&window.claude.use))return null;try{const s=await window.claude.use('sample');if(!s)return null;const l=await s.limits().catch(()=>null);return l&&l.images?s:null}catch(e){return null}})();return samplerP};
+const SCAN_PROMPT='התמונה היא צילום של רישיון רכב ישראלי (ייתכן שהוא מסובב או מצולם בזווית). חלץ ממנו את הפרטים והחזר רק JSON בצורה הזו:\n{"car_number":"9953931","year":"2015","owner_name":"ישראל ישראלי","owner_id":"037398328"}\n'+
+ 'car_number: "מספר רכב", ספרות בלבד בלי מקפים. year: שנת הייצור (שנת ייצור); אם אין, השנה מתוך "מועד עליה לכביש". owner_name: שם הבעלים כפי שמופיע ברישיון. owner_id: מספר הזהות של הבעלים, 9 ספרות כולל ספרת הביקורת שאחרי המקף. שדה שלא רואים בבירור: null. אל תנחש.';
+function imgToCanvas(file,maxSide,rot){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,maxSide/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
+  const c=document.createElement('canvas'),sw=rot%180?h:w,sh=rot%180?w:h;c.width=sw;c.height=sh;const x=c.getContext('2d');x.translate(sw/2,sh/2);x.rotate(rot*Math.PI/180);x.drawImage(im,-w/2,-h/2,w,h);URL.revokeObjectURL(u);res(c)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
+function loadScript(src){return new Promise((res,rej)=>{if(window.Tesseract)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.append(s)})}
+function parseOcr(t){const out={};const flat=t.replace(/[Oo]/g,'0');
+  let m=flat.match(/(\d{8})\s*[-–]\s*(\d)\b/);if(m&&idOk(m[1]+m[2]))out.owner_id=m[1]+m[2];
+  if(!out.owner_id){for(const n of flat.match(/\b\d{9}\b/g)||[])if(idOk(n)&&!/^0{3}/.test(n)){out.owner_id=n;break}}
+  m=flat.match(/מספר\s*רכב[^\d]{0,25}(\d{2,3}[- ]?\d{2,3}[- ]?\d{2,3})/);
+  if(m)out.car_number=m[1].replace(/\D/g,'');
+  if(!out.car_number){const c=(flat.match(/\b\d{7,8}\b/g)||[]).find(n=>!(out.owner_id||'').includes(n));if(c)out.car_number=c}
+  m=flat.match(/שנת\s*יי?צור[^\d]{0,15}((?:19|20)\d{2})/)||flat.match(/(?:לכביש|עליה)[^\d]{0,25}\d{1,2}\s*\/\s*((?:19|20)\d{2})/)||flat.match(/\d{1,2}\s*\/\s*((?:19|20)\d{2})[^\d\n]{0,25}(?:עליה|לכביש)/);
+  if(m)out.year=m[1];else{const ys=[...flat.matchAll(/\b\d{2}\/((?:19|20)\d{2})\b/g)].map(x=>+x[1]).filter(y=>y<=new Date().getFullYear());if(ys.length)out.year=String(Math.min(...ys))}
+  m=t.match(/שם\s*(?:ה)?בעלים[:\s]+([א-ת'"׳ ]{3,30})/);if(m)out.owner_name=m[1].trim();
+  if(!out.owner_name&&out.owner_id){const line=t.split('\n').find(l=>/\d{8}\s*[-–]\s*\d|\d{9}/.test(l.replace(/[Oo]/g,'0')));
+    if(line){const w=(line.match(/[א-ת'"׳]{2,}/g)||[]).filter(x=>!/^(מספר|זהות|בעלים|שם|ת"ז)$/.test(x));if(w.length>=2)out.owner_name=w.slice(-3).join(' ')}}
+  return out}
+async function ocrLocal(file,say){say('טוען את קורא הטקסט (פעם ראשונה לוקח קצת זמן)…');
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+  const w=await Tesseract.createWorker('heb+eng');let best={score:-1,out:{}};
+  try{for(const rot of [0,90,270]){say('קורא את הרישיון…');const c=await imgToCanvas(file,2000,rot);const {data}=await w.recognize(c);const out=parseOcr(data.text);
+    const score=(out.car_number?2:0)+(out.owner_id?2:0)+(out.year?1:0)+data.confidence/100;if(score>best.score)best={score,out};if(out.car_number&&out.owner_id&&out.year)break}}
+  finally{w.terminate()}return best.out}
+function applyScan(r){const set=(k,v)=>{v=v==null?'':String(v).trim();if(!v||v==='null')return 0;const el=$('f_'+k);el.value=v;el.classList.add('filled');el.classList.remove('err');return 1};
+  let n=0;n+=set('car',String(r.car_number||'').replace(/\D/g,''));const y=String(r.year||'').match(/(19|20)\d{2}/);if(y)n+=set('year',y[0]);
+  n+=set('s_name',r.owner_name);n+=set('s_id',String(r.owner_id||'').replace(/\D/g,''));checkId('f_s_id','h_s_id');saveDraft();return n}
+$('scanBtn').onclick=()=>$('scanFile').click();
+$('scanFile').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;
+  const msg=$('scanMsg'),btn=$('scanBtn');const say=t=>{msg.className='scanMsg';msg.textContent=t};btn.disabled=true;
+  try{let r;const s=await getSampler();
+    if(s){say('Claude קורא את הרישיון…');const c=await imgToCanvas(file,1800,0);const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',0.9));r=await s.json(SCAN_PROMPT,{images:[blob]})}
+    else r=await ocrLocal(file,say);
+    const n=applyScan(r||{});
+    if(n){msg.className='scanMsg ok';msg.textContent='מולאו '+n+' שדות מהרישיון (מסומנים בירוק). כדאי לעבור עליהם רגע.'}
+    else{msg.className='scanMsg bad';msg.textContent='לא הצלחתי לקרוא את הרישיון. כדאי לצלם שוב, ישר, באור טוב ובלי השתקפויות.'}}
+  catch(err){msg.className='scanMsg bad';const c=err&&err.code;
+    msg.textContent=c==='not_granted'?'צריך לאשר ל-Claude לקרוא את התמונה כדי שזה יעבוד.':c==='rate_limited'?'יותר מדי בקשות כרגע. לנסות שוב עוד דקה.':c==='image_rejected'?'התמונה לא מתאימה. לנסות לצלם שוב.':(err&&err.message==='script')?'אין חיבור לאינטרנט לטעינת קורא הטקסט.':'לא הצלחתי לקרוא את הרישיון. לנסות לצלם שוב.'}
+  finally{btn.disabled=false}});
+['car','year','s_name','s_id'].forEach(k=>$('f_'+k).addEventListener('input',()=>$('f_'+k).classList.remove('filled')));
+
+/* ---------- microphone in every field ---------- */
+const MIC_FIELDS=['f_car','f_year','f_price','f_words','f_s_name','f_s_id','f_s_phone','f_s_address','f_s_city','b_name','b_id','b_phone','b_address','b_city','b_price','q'];
+const NUMERIC=new Set(['f_car','f_year','f_price','f_s_id','f_s_phone','b_id','b_phone','b_price']);
+const MIC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+let micEngine=null,micInput=null,micBase='',micBtn=null,micRec=null,claudeDict=null;
+function micToast(t){const m=$('micMsg');m.textContent=t;m.hidden=!t;clearTimeout(micToast.t);if(t)micToast.t=setTimeout(()=>m.hidden=true,4500)}
+function micClean(id,t){t=String(t||'');if(NUMERIC.has(id)){const d=t.replace(/[^\d]/g,'');return id==='f_s_phone'||id==='b_phone'?d.replace(/^(05\d)(\d{7})$/,'$1-$2'):d}return t.replace(/\s+/g,' ').trim()}
+function micPut(text,final){if(!micInput)return;const id=micInput.id;
+  let v=NUMERIC.has(id)?micBase+micClean(id,text):(micBase?micBase+' ':'')+micClean(id,text);micInput.value=v.trim();
+  if(final)micBase=micInput.value;micInput.dispatchEvent(new Event('input',{bubbles:true}))}
+function micOff(){if(micBtn){micBtn.classList.remove('on');micBtn.setAttribute('aria-pressed','false')}micBtn=null;micInput=null}
+function micHideAll(){document.querySelectorAll('.mic').forEach(b=>b.hidden=true)}
+function micClick(btn,inp){
+  if(micBtn===btn){if(micEngine==='claude')claudeDict.stop();else if(micRec)micRec.stop();return}
+  if(micBtn){if(micEngine==='claude')claudeDict.stop();else if(micRec)micRec.abort();micOff()}
+  micBtn=btn;micInput=inp;micBase=inp.value.trim();btn.classList.add('on');btn.setAttribute('aria-pressed','true');
+  if(micEngine==='claude'){claudeDict.start({language:'he'}).catch(e=>{const c=e&&e.code;micOff();
+      if(c==='not_granted'){micHideAll();micToast('אין אישור למיקרופון. אפשר להשתמש במיקרופון של המקלדת.')}else if(c==='unavailable'){micHideAll();micToast('הכתבה לא זמינה כאן.')}else if(c!=='stopped')micToast('המיקרופון לא הצליח. לנסות שוב.')});return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;micRec=new SR();micRec.lang='he-IL';micRec.interimResults=true;micRec.continuous=false;micRec.maxAlternatives=1;
+  micRec.onresult=ev=>{let fin='',tmp='';for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal)fin+=r[0].transcript;else tmp+=r[0].transcript}
+    if(fin)micPut(fin,true);else if(tmp)micPut(tmp,false)};
+  micRec.onerror=ev=>{if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){micHideAll();micToast('המיקרופון חסום כאן. אפשר להשתמש במיקרופון של המקלדת.')}else if(ev.error==='no-speech')micToast('לא שמעתי כלום. ללחוץ ולדבר.');else if(ev.error!=='aborted')micToast('המיקרופון לא הצליח. לנסות שוב.')};
+  micRec.onend=()=>{if(micInput)micInput.value=micInput.value.trim();micOff();micRec=null};
+  try{micRec.start()}catch(e){micOff()}}
+function micSetup(){MIC_FIELDS.forEach(id=>{const inp=$(id);if(!inp||inp.parentElement.classList.contains('mw'))return;
+  const w=document.createElement('span');w.className='mw';inp.parentNode.insertBefore(w,inp);w.append(inp);
+  const b=document.createElement('button');b.type='button';b.className='mic';b.setAttribute('aria-label','הקלטה בקול');b.setAttribute('aria-pressed','false');b.innerHTML=MIC_SVG;
+  b.addEventListener('click',()=>micClick(b,inp));w.append(b)})}
+(async()=>{let d=null;if(window.claude&&window.claude.use){try{d=await window.claude.use('dictation')}catch(e){d=null}}
+  if(d){claudeDict=d;micEngine='claude';
+    d.onPartial(({text})=>{if(text)micPut(text,false)});
+    d.onFinal(({text})=>micPut(text,true));
+    d.onState(({state})=>{if(state==='idle')micOff()});micSetup();return}
+  if(window.SpeechRecognition||window.webkitSpeechRecognition){micEngine='web';micSetup()}})();
 
 /* ---------- start ---------- */
 store.init().then(()=>{fillDefaults(false);loadSettings();showBuyer();if(!settings.name||!settings.sig)tab('set')});
