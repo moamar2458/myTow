@@ -150,6 +150,29 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 24H2.5v-8.5L5.5 10H12v9h13.5v5H24.5'/%3E%3Cpath d='M10.5 24h9'/%3E%3Cpath d='M6.5 14.5L8 12.5h2v2z'/%3E%3Ccircle cx='8' cy='24' r='2.6'/%3E%3Ccircle cx='22' cy='24' r='2.6'/%3E%3Cpath d='M20 19l8-11v7'/%3E%3Cpath d='M28 15a1.8 1.8 0 1 1-1.8 1.8'/%3E%3Cpath d='M7.5 7.5h3'/%3E%3C/svg%3E") center/contain no-repeat}
 .go .btn[disabled]{opacity:.85;cursor:wait}
 
+/* who is the buyer (two people) */
+.pick{margin-bottom:14px}
+.pickL{display:block;margin-bottom:6px;font-size:14px;font-weight:600;color:#ece8dc}
+.pickBtns,.who{display:flex;gap:8px}
+.pickBtn,.who button{flex:1;min-width:0;min-height:52px;padding:8px 10px;border:2px solid #4a4d52;border-radius:12px;background:#26282c;color:#ece8dc;font:700 17px Rubik,Arial,sans-serif;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pickBtn[aria-pressed=true],.who button[aria-pressed=true]{background:var(--yel);border-color:var(--yel);color:var(--ink)}
+.pickBtn[aria-pressed=true]::before{content:'✓ '}
+.pickBtn:focus-visible,.who button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.whoWrap{margin-bottom:14px}
+
+/* date and time: tap opens the calendar / clock, no typing */
+input[type=date],input[type=time]{position:relative;cursor:pointer;background-repeat:no-repeat;background-position:left 12px center;background-size:22px 22px;padding-left:44px}
+input[type=date]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b5850' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E")}
+input[type=time]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b5850' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E")}
+input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:auto;height:auto;margin:0;padding:0;opacity:0;cursor:pointer}
+
+/* photo answers and the empty-agreement question */
+.msg.ask{background:var(--paper);border:2px solid var(--yel);box-shadow:0 3px 0 rgba(0,0,0,.5)}
+.ck{display:flex;gap:10px;align-items:flex-start;margin:10px 0 0;font-size:15px;font-weight:400;color:var(--ink);cursor:pointer}
+.ck input{flex:none;width:24px;min-width:24px;height:24px;min-height:0;margin:1px 0 0;padding:0;accent-color:var(--acc)}
+.ck s{color:#6b665c}
+.go .msg{max-width:680px;margin:0 auto 10px}
+
 /* history */
 .sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .sum div{overflow:hidden;border-radius:14px;border:2px solid #3a3d42;background:#26282c;color:#fff;padding:0 14px 12px}
@@ -225,6 +248,7 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
 <main>
   <section id="tab-new">
     <div id="newMsg" class="msg"></div>
+    <div class="pick" id="buyerPick" hidden><span class="pickL">מי הרוכש בהסכם?</span><div class="pickBtns" id="pickBtns"></div></div>
     <button class="btn clrBig" id="clrAll" type="button">נקה דף</button>
     <div class="msg bad" id="clrAsk" hidden>
       <b>לנקות את הטופס?</b> כל השדות של ההסכם הזה וחתימת המוכר יימחקו. הפרטים שלך נשארים, וגם הסכמים שכבר נשמרו בהיסטוריה.
@@ -233,10 +257,15 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
     <p id="clrDone" class="note ok" hidden style="margin:-6px 0 12px"></p>
     <button class="scan" id="scanBtn" type="button">
       <span class="camBody" aria-hidden="true"><span class="lens"></span><span class="rec"></span></span>
-      <span>צילום רישיון רכב<small id="scanSub">מספר הרכב, שנת הייצור, הבעלים והכתובת יתמלאו לבד</small></span>
+      <span>צילום מסמך או רכב<small id="scanSub">מסמך: כל הפרטים שיימצאו יתמלאו. רכב או לוחית: רק מספר הרכב.</small></span>
     </button>
     <input id="scanFile" type="file" accept="image/*" capture="environment" hidden>
     <p id="scanMsg" class="scanMsg"></p>
+    <div class="msg ask" id="scanAsk" hidden>
+      <b>בשדות האלה כבר כתוב משהו. להחליף במה שנמצא בתמונה?</b>
+      <div id="scanAskList"></div>
+      <div class="bar"><button class="btn sm pri" id="scanAskYes" type="button">להחליף את המסומנים</button><button class="btn sm" id="scanAskNo" type="button">להשאיר מה שיש</button></div>
+    </div>
     <div class="card">
       <div class="ch"><span class="no">01</span><h2>הרכב</h2></div>
       <label>מספר רכב<span class="plate"><span class="il" aria-hidden="true"><svg viewBox="0 0 20 14" width="20" height="14"><rect width="20" height="14" fill="#fff"/><rect y="1.5" width="20" height="2" fill="#0038b8"/><rect y="10.5" width="20" height="2" fill="#0038b8"/><path d="M10 4.2l2.3 3.9H7.7zM10 9.8L7.7 5.9h4.6z" fill="none" stroke="#0038b8" stroke-width=".8"/></svg>IL</span><input id="f_car" inputmode="numeric" autocomplete="off" placeholder="00-000-00"></span></label>
@@ -277,7 +306,13 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
       </div>
       <div class="bar"><button class="btn sm paper" id="clrSeller">ניקוי חתימה</button><button class="btn sm paper" id="resetForm">ניקוי כל הטופס</button></div>
     </div>
-    <div class="go"><button class="btn pri" id="make">יצירת הסכם PDF</button></div>
+    <div class="go">
+      <div class="msg bad" id="emptyAsk" hidden>
+        <b>ההסכם הזה ריק, בטוח שאתה רוצה לשלוח אותו?</b>
+        <div class="bar"><button class="btn sm pri" id="emptyYes" type="button" style="background:var(--err);border-color:var(--err)">כן, ליצור ולשלוח</button><button class="btn sm" id="emptyNo" type="button">ביטול</button></div>
+      </div>
+      <button class="btn pri" id="make">יצירת הסכם PDF</button>
+    </div>
   </section>
 
   <section id="tab-hist" hidden>
@@ -290,6 +325,7 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
   </section>
 
   <section id="tab-set" hidden>
+    <div class="whoWrap"><span class="pickL">של מי הפרטים?</span><div class="who" id="whoBtns"><button type="button" data-slot="0" aria-pressed="true">אדם 1</button><button type="button" data-slot="1" aria-pressed="false">אדם 2</button></div></div>
     <div id="setMsg" class="msg"></div>
     <div class="card">
       <div class="ch"><span class="no">01</span><h2>פרטי הרוכש (נשמרים פעם אחת)</h2></div>
@@ -322,7 +358,7 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
     </div>
     <div class="card">
       <div class="ch"><span class="no">04</span><h2>איפוס</h2></div>
-      <p class="small" style="margin-top:0">מוחק את כל הפרטים בעמוד הזה: השם, ת"ז, טלפון, כתובת, עיר, מחיר ברירת מחדל והחתימה שלך. ההיסטוריה של ההסכמים לא נמחקת.</p>
+      <p class="small" style="margin-top:0">מוחק את הפרטים של האדם שנבחר למעלה: השם, ת"ז, טלפון, כתובת, עיר, מחיר ברירת מחדל והחתימה שלך. ההיסטוריה של ההסכמים לא נמחקת.</p>
       <div class="bar" id="rstBar"><button class="btn sm danger" id="rst">איפוס הפרטים שלי</button></div>
       <div class="msg bad" id="rstAsk" hidden style="margin:10px 0 0">
         <b>בטוח לאפס?</b> כל הפרטים והחתימה בעמוד הזה יימחקו, ואי אפשר לבטל.
@@ -510,7 +546,17 @@ async function deliver(blob,name,type,meta){const file=new File([blob],name,{typ
   try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();return 'saved'}catch(e){return 'fail'}}
 
 /* ---------- state ---------- */
-let settings=lsGet('tow.settings',{});
+let people=lsGet('tow.people',null);
+if(!Array.isArray(people)){const old=lsGet('tow.settings',{});people=[old&&old.name?old:{},{}];lsSet('tow.people',people)}
+while(people.length<2)people.push({});
+let active=+lsGet('tow.active',0)||0;if(active!==1)active=0;
+const hasP=i=>!!(people[i]&&people[i].name);
+const anyP=()=>hasP(0)||hasP(1);
+let settings={};
+function pickActive(){if(!hasP(active)){const o=[0,1].find(hasP);if(o!=null)active=o}settings=hasP(active)?people[active]:{}}
+pickActive();
+let editSlot=active;
+const savePeople=()=>lsSet('tow.people',people)&&lsSet('tow.active',active)&&lsSet('tow.settings',settings);
 const FIELDS=['car','year','date','price','words','s_name','s_id','s_phone','s_address','s_city','resp','hour'];
 const sigSeller=SigPad($('sigSeller')),sigBuyer=SigPad($('sigBuyer'));
 let wordsTouched=false;
@@ -527,10 +573,17 @@ let pendingId=null;
 const saveDraft=()=>{const d={wordsTouched,pendingId};FIELDS.forEach(k=>d[k]=$('f_'+k).value);lsSet('tow.draft',d)};
 function checkId(inp,h){$(h).textContent=idOk($(inp).value)?'':'מספר ת"ז לא תקין, כדאי לבדוק'}
 
-function showBuyer(){
-  $('newMsg').innerHTML=(!settings.name||!settings.sig)?'צריך למלא פעם אחת את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".':'';
-  $('newMsg').className='msg'+((!settings.name||!settings.sig)?' warn':'')}
-function loadSettings(){setLocked(!!(settings.name&&settings.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=settings[k]||'');sigBuyer.set(settings.sig||'');checkId('b_id','h_b_id')}
+function showBuyer(){const any=anyP();
+  $('newMsg').innerHTML=any?'':'צריך למלא פעם אחת את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".';
+  $('newMsg').className='msg'+(any?'':' warn');
+  $('buyerPick').hidden=!any;
+  $('pickBtns').innerHTML=[0,1].filter(hasP).map(i=>'<button type="button" class="pickBtn" data-slot="'+i+'" aria-pressed="'+(i===active)+'">'+esc(people[i].name)+'</button>').join('')}
+function renderWho(){document.querySelectorAll('#whoBtns [data-slot]').forEach(b=>{const i=+b.dataset.slot;b.textContent=hasP(i)?people[i].name:'אדם '+(i+1);b.setAttribute('aria-pressed',i===editSlot)})}
+function loadSettings(){const p=people[editSlot]||{};setLocked(!!(p.name&&p.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=p[k]||'');sigBuyer.set(p.sig||'');checkId('b_id','h_b_id');renderWho()}
+function priceFromBuyer(){if(!$('f_price').value&&settings.price){$('f_price').value=settings.price;if(!wordsTouched)$('f_words').value=shekelWords(settings.price);saveDraft()}}
+$('pickBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;active=+b.dataset.slot;pickActive();savePeople();showBuyer();priceFromBuyer()});
+$('whoBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;editSlot=+b.dataset.slot;
+  $('setOk').textContent='';$('setMsg').textContent='';$('setMsg').className='msg';$('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').textContent='';loadSettings()});
 
 /* ---------- tabs ---------- */
 function tab(name){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===name));
@@ -547,12 +600,16 @@ FIELDS.forEach(k=>$('f_'+k).addEventListener('input',()=>{$('f_'+k).classList.re
   if(k==='date')$('f_resp').value=$('f_date').value;
   if(k==='s_id')checkId('f_s_id','h_s_id');saveDraft()}));
 $('b_id').addEventListener('input',()=>checkId('b_id','h_b_id'));
+['f_date','f_resp','f_hour'].forEach(id=>{const i=$(id);i.setAttribute('inputmode','none');
+  i.addEventListener('keydown',e=>{if(e.key!=='Tab')e.preventDefault()});
+  i.addEventListener('paste',e=>e.preventDefault());
+  i.addEventListener('click',()=>{if(matchMedia('(pointer:fine)').matches){try{i.showPicker&&i.showPicker()}catch(e){}}})});
 $('clrSeller').onclick=()=>sigSeller.clear();
 $('clrBuyer').onclick=()=>sigBuyer.clear();
 let resetArm=false;
 $('resetForm').onclick=()=>{if(!resetArm){resetArm=true;$('resetForm').textContent='ללחוץ שוב לאישור';setTimeout(()=>{resetArm=false;$('resetForm').textContent='ניקוי כל הטופס'},3000);return}
   resetArm=false;$('resetForm').textContent='ניקוי כל הטופס';newForm()};
-function newForm(){pendingId=null;$('clrAsk').hidden=true;document.querySelectorAll('input.filled').forEach(i=>i.classList.remove('filled'));$('scanMsg').textContent='';lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
+function newForm(){pendingId=null;$('clrAsk').hidden=true;$('scanAsk').hidden=true;$('emptyAsk').hidden=true;scanPending=null;document.querySelectorAll('input.filled').forEach(i=>i.classList.remove('filled'));$('scanMsg').textContent='';lsSet('tow.draft',{});fillDefaults(true);sigSeller.clear();window.scrollTo(0,0)}
 
 let locked=false;
 function setLocked(on){locked=on;['name','id','phone','address','city','price'].forEach(k=>{const i=$('b_'+k);i.readOnly=on;i.classList.toggle('lk',on)});
@@ -564,26 +621,29 @@ $('clrYes').onclick=()=>{newForm();$('clrDone').textContent='הטופס נוקה
 $('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';$('b_name').focus();return}
   const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
   if(!n.name||!n.sig){$('setMsg').className='msg bad';$('setMsg').textContent='צריך לפחות שם וחתימה.';return}
-  settings=n;if(!lsSet('tow.settings',settings)){$('setMsg').className='msg bad';$('setMsg').textContent='השמירה נכשלה בדפדפן הזה.';return}
-  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='נשמר';setLocked(true);showBuyer();
-  if(!$('f_price').value&&settings.price){$('f_price').value=settings.price;if(!wordsTouched)$('f_words').value=shekelWords(settings.price)}};
+  const prev=people[editSlot];people[editSlot]=n;if(!hasP(active)||editSlot===active)active=editSlot;pickActive();
+  if(!savePeople()){people[editSlot]=prev;pickActive();$('setMsg').className='msg bad';$('setMsg').textContent='השמירה נכשלה בדפדפן הזה.';return}
+  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='נשמר';setLocked(true);renderWho();showBuyer();
+  if(editSlot===active)priceFromBuyer()};
 
-/* ---------- create agreement ---------- */
+/* ---------- create agreement (nothing is required) ---------- */
+const DEAL_FIELDS=['car','year','price','words','s_name','s_id','s_phone','s_address','s_city'];
+const dealEmpty=()=>DEAL_FIELDS.every(k=>!$('f_'+k).value.trim())&&sigSeller.isEmpty();
+let emptyOk=false;
+$('emptyNo').onclick=()=>{$('emptyAsk').hidden=true};
+$('emptyYes').onclick=()=>{$('emptyAsk').hidden=true;emptyOk=true;$('make').click()};
 $('make').onclick=async()=>{
   $('clrDone').hidden=true;
-  const msg=$('newMsg');const bad=[];
-  if(!settings.name||!settings.sig){msg.className='msg bad';msg.innerHTML='קודם צריך למלא את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".';window.scrollTo(0,0);return}
-  [['car','מספר רכב'],['price','מחיר'],['s_name','שם המוכר']].forEach(([k,l])=>{if(!$('f_'+k).value.trim()){$('f_'+k).classList.add('err');bad.push(l)}});
-  if(sigSeller.isEmpty()){$('sigSellerBox').classList.add('err');bad.push('חתימת המוכר')}
-  if(bad.length){msg.className='msg bad';msg.textContent='חסר: '+bad.join(', ');window.scrollTo(0,0);return}
-  msg.className='msg';msg.textContent='';
+  const msg=$('newMsg');
+  if(!emptyOk&&dealEmpty()){$('emptyAsk').hidden=false;$('emptyNo').focus();return}
+  emptyOk=false;$('emptyAsk').hidden=true;
   const v=k=>$('f_'+k).value.trim();
   const rec={id:pendingId||Date.now(),created:new Date().toISOString(),car:v('car'),year:v('year'),date:v('date'),price:parseFloat(v('price').replace(/[^\d.]/g,''))||0,words:v('words'),respDate:v('resp'),hour:v('hour'),
     seller:{name:v('s_name'),id:v('s_id'),phone:v('s_phone'),address:v('s_address'),city:v('s_city')},sellerSig:sigSeller.trimmed(),
-    buyer:{name:settings.name,id:settings.id,phone:settings.phone,address:settings.address,city:settings.city,sig:settings.sig}};
+    buyer:{name:settings.name||'',id:settings.id||'',phone:settings.phone||'',address:settings.address||'',city:settings.city||'',sig:settings.sig||''}};
   $('make').disabled=true;$('make').textContent='יוצר…';
   try{await store.put(rec);pendingId=rec.id;saveDraft();await openSheet(rec,true)}
-  catch(e){msg.className='msg bad';msg.textContent='משהו נכשל בשמירה: '+(e.message||e)}
+  catch(e){msg.className='msg bad';msg.textContent='משהו נכשל בשמירה: '+(e.message||e);window.scrollTo(0,0)}
   finally{$('make').disabled=false;$('make').textContent='יצירת הסכם PDF'}};
 
 /* ---------- result sheet ---------- */
@@ -631,12 +691,13 @@ $('list').addEventListener('click',async e=>{const o=e.target.closest('[data-ope
   if(d){if(d.dataset.arm){await store.del(+d.dataset.del);renderHist()}else{d.dataset.arm='1';d.textContent='ללחוץ שוב למחיקה';setTimeout(()=>{if(d.isConnected){delete d.dataset.arm;d.textContent='מחיקה'}},3000)}}});
 
 /* ---------- backup ---------- */
-$('exp').onclick=async()=>{const data=JSON.stringify({app:'tow-forms',v:1,settings,deals:await store.all()});
+$('exp').onclick=async()=>{const data=JSON.stringify({app:'tow-forms',v:1,settings,people,active,deals:await store.all()});
   const r=await deliver(new Blob([data],{type:'application/json'}),'tow-backup-'+todayISO()+'.json','application/json');
   $('bkNote').className='note'+(r==='fail'?'':' ok');$('bkNote').textContent=r==='fail'?'לא הצלחתי לשמור כאן.':(r==='cancel'?'':'הגיבוי נשמר.')};
 $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(!Array.isArray(j.deals))throw 0;for(const d of j.deals)await store.put(d);
-    if(j.settings&&j.settings.name&&!settings.name){settings=j.settings;lsSet('tow.settings',settings);loadSettings();showBuyer()}
+    if(!anyP()){if(Array.isArray(j.people)&&j.people.some(p=>p&&p.name)){people=[j.people[0]||{},j.people[1]||{}];active=j.active===1?1:0}else if(j.settings&&j.settings.name)people=[j.settings,{}];
+      pickActive();editSlot=active;savePeople();loadSettings();showBuyer()}
     $('bkNote').className='note ok';$('bkNote').textContent='נטענו '+j.deals.length+' הסכמים.'}
   catch(err){$('bkNote').className='note';$('bkNote').textContent='הקובץ לא נראה כמו גיבוי של האפליקציה.'}
   e.target.value=''});
@@ -644,16 +705,21 @@ $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)ret
 /* ---------- reset my details ---------- */
 $('rst').onclick=()=>{$('rstAsk').hidden=false;$('rstBar').hidden=true;$('rstNote').textContent='';$('rstNo').focus()};
 $('rstNo').onclick=()=>{$('rstAsk').hidden=true;$('rstBar').hidden=false};
-$('rstYes').onclick=()=>{settings={};setLocked(false);try{localStorage.removeItem('tow.settings')}catch(e){}
+$('rstYes').onclick=()=>{people[editSlot]={};pickActive();savePeople();setLocked(false);
   ['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value='');sigBuyer.clear();checkId('b_id','h_b_id');
   $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='';
-  $('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').className='note ok';$('rstNote').textContent='הפרטים אופסו. אפשר למלא מחדש.';showBuyer();window.scrollTo(0,0)};
+  $('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').className='note ok';$('rstNote').textContent='הפרטים אופסו. אפשר למלא מחדש.';renderWho();showBuyer();window.scrollTo(0,0)};
 
 /* ---------- scan vehicle licence ---------- */
 let samplerP=null;
 const getSampler=()=>{if(!samplerP)samplerP=(async()=>{if(!(window.claude&&window.claude.use))return null;try{const s=await window.claude.use('sample');if(!s)return null;const l=await s.limits().catch(()=>null);return l&&l.images?s:null}catch(e){return null}})();return samplerP};
-const SCAN_PROMPT='התמונה היא צילום של רישיון רכב ישראלי (ייתכן שהוא מסובב או מצולם בזווית). חלץ ממנו את הפרטים והחזר רק JSON בצורה הזו:\n{"car_number":"9953931","year":"2015","owner_name":"ישראל ישראלי","owner_id":"037398328","owner_address":"הרצל 12","owner_city":"כפר סבא"}\n'+
- 'car_number: "מספר רכב", ספרות בלבד בלי מקפים. year: שנת הייצור (שנת ייצור); אם אין, השנה מתוך "מועד עליה לכביש". owner_name: שם הבעלים כפי שמופיע ברישיון. owner_id: מספר הזהות של הבעלים, 9 ספרות כולל ספרת הביקורת שאחרי המקף. הכתובת של הבעלים מופיעה ברישיון בשדה "מען" או "כתובת", בדרך כלל בצורה "רחוב מספר עיר-מיקוד": owner_address הוא הרחוב ומספר הבית, owner_city הוא שם העיר בלבד, בלי המיקוד. שדה שלא רואים בבירור: null. אל תנחש.';
+const SCAN_PROMPT='Look at this photo and decide what it shows.\n'+
+ '"document": any paper or document: a vehicle licence (רישיון רכב), ID card, form, letter, invoice, note, or a screen showing such details.\n'+
+ '"vehicle": a photo of a car, or of a licence plate only.\n'+
+ 'Return ONLY JSON in this shape:\n{"kind":"document","car_number":"9953931","year":"2015","owner_name":"ישראל ישראלי","owner_id":"037398328","owner_phone":"0501234567","owner_address":"הרצל 12","owner_city":"כפר סבא"}\n'+
+ 'If kind is "vehicle": fill ONLY car_number, read from the Israeli licence plate, digits only. Every other field must be null, even if the photo shows other text, phone numbers, stickers or signs.\n'+
+ 'If kind is "document": fill every field you can read clearly. car_number: the vehicle number (מספר רכב), digits only. year: the production year (שנת ייצור); if missing, the year of "מועד עליה לכביש". owner_name: the person on the paper (owner, seller or customer), as written. owner_id: Israeli ID number (ת"ז), 9 digits including the check digit after the dash. owner_phone: phone number, digits only. owner_address: street and house number. owner_city: the city name only, without the zip code. On a vehicle licence the owner address is in "מען" or "כתובת", usually as "street number city-zip".\n'+
+ 'Any field you cannot see clearly: null. Do not guess.';
 function imgToCanvas(file,maxSide,rot){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,maxSide/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
   const c=document.createElement('canvas'),sw=rot%180?h:w,sh=rot%180?w:h;c.width=sw;c.height=sh;const x=c.getContext('2d');x.translate(sw/2,sh/2);x.rotate(rot*Math.PI/180);x.drawImage(im,-w/2,-h/2,w,h);URL.revokeObjectURL(u);res(c)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
 function loadScript(src){return new Promise((res,rej)=>{if(window.Tesseract)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.append(s)})}
@@ -673,28 +739,55 @@ function parseOcr(t){const out={};const flat=t.replace(/[Oo]/g,'0');
     else{const b=src.match(/([א-ת"'׳][א-ת"'׳ ]{1,25}?)\s+(\d{1,4})\s+([א-ת"'׳][א-ת"'׳ ]{1,25})/);if(b){out.owner_address=b[1].trim()+' '+b[2];out.owner_city=b[3].trim()}}}
   if(!out.owner_name&&out.owner_id){const line=t.split('\n').find(l=>/\d{8}\s*[-–]\s*\d|\d{9}/.test(l.replace(/[Oo]/g,'0')));
     if(line){const w=(line.match(/[א-ת'"׳]{2,}/g)||[]).filter(x=>!/^(מספר|זהות|בעלים|שם|ת"ז)$/.test(x));if(w.length>=2)out.owner_name=w.slice(-3).join(' ')}}
+  if(!out.owner_phone){m=flat.match(/(?:\+?972[-\s]?|\b0)(5\d|[2-489]|7\d)[-\s]?(\d{3})[-\s]?(\d{3,4})\b/);if(m){const d='0'+m[1]+m[2]+m[3];if(d.length>=9&&d.length<=10)out.owner_phone=d}}
   return out}
+function plateFromOcr(t){const heb=(t.match(/[א-ת]/g)||[]).length;if(heb>=25)return '';
+  for(const c of t.replace(/[Oo]/g,'0').match(/\d[\d\s\-–.]{5,10}\d/g)||[]){const d=c.replace(/\D/g,'');if(d.length===7||d.length===8)return d}return ''}
 async function ocrLocal(file,say){say('טוען את קורא הטקסט (פעם ראשונה לוקח קצת זמן)…');
   await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
   const w=await Tesseract.createWorker('heb+eng');const runs=[];
-  try{for(const rot of [0,90,270]){say('קורא את הרישיון…');const c=await imgToCanvas(file,2000,rot);const {data}=await w.recognize(c);const out=parseOcr(data.text);
+  try{for(const rot of [0,90,270]){say('קורא את התמונה…');const c=await imgToCanvas(file,2000,rot);const {data}=await w.recognize(c);
+    if(rot===0){const pl=plateFromOcr(data.text);if(pl)return {kind:'vehicle',car_number:pl}}
+    const out=parseOcr(data.text);
     runs.push({out,score:Object.keys(out).length+data.confidence/100});
     const m=merge(runs);if(['car_number','owner_id','year','owner_name','owner_city'].every(k=>m[k]))break}}
-  finally{w.terminate()}return merge(runs)}
+  finally{w.terminate()}return Object.assign(merge(runs),{kind:'document'})}
 function merge(runs){const m={};runs.slice().sort((a,b)=>b.score-a.score).forEach(r=>{for(const k in r.out)if(!m[k])m[k]=r.out[k]});
   if(m.owner_address&&!m.owner_city){const r=runs.find(x=>x.out.owner_city);if(r)m.owner_city=r.out.owner_city}return m}
-function applyScan(r){const set=(k,v)=>{v=v==null?'':String(v).trim();if(!v||v==='null')return 0;const el=$('f_'+k);el.value=v;el.classList.add('filled');el.classList.remove('err');return 1};
-  let n=0;n+=set('car',String(r.car_number||'').replace(/\D/g,''));const y=String(r.year||'').match(/(19|20)\d{2}/);if(y)n+=set('year',y[0]);
-  n+=set('s_name',r.owner_name);n+=set('s_id',String(r.owner_id||'').replace(/\D/g,''));n+=set('s_address',r.owner_address);n+=set('s_city',String(r.owner_city||'').replace(/\s*-?\s*\d{5,7}\s*$/,''));checkId('f_s_id','h_s_id');saveDraft();return n}
+const SCAN_LABELS={car:'מספר רכב',year:'שנת ייצור',s_name:'שם המוכר',s_id:'ת"ז',s_phone:'טלפון',s_address:'כתובת',s_city:'עיר'};
+const NUM_SCAN=new Set(['car','year','s_id','s_phone']);
+function scanVals(r){const o={},vehicle=r&&r.kind==='vehicle';
+  const put=(k,v)=>{v=v==null?'':String(v).trim();if(v&&v!=='null')o[k]=v};
+  put('car',String(r.car_number||'').replace(/\D/g,''));
+  if(!vehicle){const y=String(r.year||'').match(/(19|20)\d{2}/);if(y)put('year',y[0]);
+    put('s_name',r.owner_name);put('s_id',String(r.owner_id||'').replace(/\D/g,''));
+    let ph=String(r.owner_phone||'').replace(/\D/g,'');if(ph.startsWith('972'))ph='0'+ph.slice(3);put('s_phone',ph.replace(/^(05\d)(\d{7})$/,'$1-$2'));
+    put('s_address',r.owner_address);put('s_city',String(r.owner_city||'').replace(/\s*-?\s*\d{5,7}\s*$/,''))}
+  return o}
+const sameVal=(k,a,b)=>NUM_SCAN.has(k)?a.replace(/\D/g,'')===b.replace(/\D/g,''):a.trim().replace(/\s+/g,' ')===b.trim().replace(/\s+/g,' ');
+function setScanField(k,v){const el=$('f_'+k);el.value=v;el.classList.add('filled');el.classList.remove('err')}
+let scanPending=null;
+function applyScan(r){const vals=scanVals(r||{});let n=0;const ask=[];
+  for(const k in vals){const cur=$('f_'+k).value.trim();if(!cur){setScanField(k,vals[k]);n++}else if(!sameVal(k,cur,vals[k]))ask.push(k)}
+  checkId('f_s_id','h_s_id');saveDraft();
+  scanPending=ask.length?vals:null;
+  if(ask.length){$('scanAskList').innerHTML=ask.map(k=>'<label class="ck"><input type="checkbox" checked data-k="'+k+'"><span><b>'+SCAN_LABELS[k]+':</b> <s>'+esc($('f_'+k).value)+'</s> ← '+esc(vals[k])+'</span></label>').join('');$('scanAsk').hidden=false}
+  else $('scanAsk').hidden=true;
+  return {n,ask:ask.length,vehicle:!!(r&&r.kind==='vehicle'),found:Object.keys(vals).length}}
+$('scanAskYes').onclick=()=>{let n=0;if(scanPending)document.querySelectorAll('#scanAskList input:checked').forEach(c=>{const k=c.dataset.k;setScanField(k,scanPending[k]);n++});
+  checkId('f_s_id','h_s_id');saveDraft();scanPending=null;$('scanAsk').hidden=true;
+  const msg=$('scanMsg');msg.className='scanMsg ok';msg.textContent=n?'הוחלפו '+n+' שדות (מסומנים בירוק).':'לא הוחלף כלום.'};
+$('scanAskNo').onclick=()=>{scanPending=null;$('scanAsk').hidden=true};
 $('scanBtn').onclick=()=>$('scanFile').click();
 $('scanFile').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;
-  const msg=$('scanMsg'),btn=$('scanBtn');const say=t=>{msg.className='scanMsg';msg.textContent=t};btn.disabled=true;
+  const msg=$('scanMsg'),btn=$('scanBtn');$('scanAsk').hidden=true;scanPending=null;const say=t=>{msg.className='scanMsg';msg.textContent=t};btn.disabled=true;
   try{let r;const s=await getSampler();
-    if(s){say('Claude קורא את הרישיון…');const c=await imgToCanvas(file,1800,0);const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',0.9));r=await s.json(SCAN_PROMPT,{images:[blob]})}
+    if(s){say('Claude קורא את התמונה…');const c=await imgToCanvas(file,1800,0);const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',0.9));r=await s.json(SCAN_PROMPT,{images:[blob]})}
     else r=await ocrLocal(file,say);
-    const n=applyScan(r||{});
-    if(n){msg.className='scanMsg ok';msg.textContent='מולאו '+n+' שדות מהרישיון (מסומנים בירוק). כדאי לעבור עליהם רגע.'}
-    else{msg.className='scanMsg bad';msg.textContent='לא הצלחתי לקרוא את הרישיון. כדאי לצלם שוב, ישר, באור טוב ובלי השתקפויות.'}}
+    const res=applyScan(r||{});
+    if(res.found){msg.className='scanMsg ok';
+      msg.textContent=(res.vehicle?'זוהה רכב, נלקח רק מספר הרכב. ':'')+(res.n?(res.n===1?'מולא שדה אחד':'מולאו '+res.n+' שדות')+' (מסומנים בירוק). ':'')+(res.ask?'בחלק מהשדות כבר היה משהו, אז קודם שואלים למטה.':(res.n?'כדאי לעבור עליהם רגע.':'הפרטים בתמונה כבר נמצאים בטופס.'))}
+    else{msg.className='scanMsg bad';msg.textContent='לא הצלחתי לקרוא פרטים מהתמונה. כדאי לצלם שוב, ישר, באור טוב ובלי השתקפויות.'}}
   catch(err){msg.className='scanMsg bad';const c=err&&err.code;
     msg.textContent=c==='not_granted'?'צריך לאשר ל-Claude לקרוא את התמונה כדי שזה יעבוד.':c==='rate_limited'?'יותר מדי בקשות כרגע. לנסות שוב עוד דקה.':c==='image_rejected'?'התמונה לא מתאימה. לנסות לצלם שוב.':(err&&err.message==='script')?'אין חיבור לאינטרנט לטעינת קורא הטקסט.':'לא הצלחתי לקרוא את הרישיון. לנסות לצלם שוב.'}
   finally{btn.disabled=false}});
@@ -736,7 +829,7 @@ function micSetup(){MIC_FIELDS.forEach(id=>{const inp=$(id);if(!inp||inp.parentE
   if(window.SpeechRecognition||window.webkitSpeechRecognition){micEngine='web';micSetup()}})();
 
 /* ---------- start ---------- */
-store.init().then(()=>{fillDefaults(false);loadSettings();showBuyer();if(!settings.name||!settings.sig)tab('set')});
+store.init().then(()=>{fillDefaults(false);loadSettings();showBuyer();if(!anyP())tab('set')});
 }
 </script>
 <script>
