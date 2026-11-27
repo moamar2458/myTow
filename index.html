@@ -6,7 +6,12 @@
 <meta name="theme-color" content="#2a2c30">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>הסכם מכירה – גרר</title>
+<meta name="apple-mobile-web-app-title" content="הסכם מכירה">
+<meta name="application-name" content="הסכם מכירה">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>הסכם מכירה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -153,12 +158,17 @@ input[readonly].lk{background:transparent;border-style:dashed;color:var(--ink)}
 /* who is the buyer (two people) */
 .pick{margin-bottom:14px}
 .pickL{display:block;margin-bottom:6px;font-size:14px;font-weight:600;color:#ece8dc}
-.pickBtns,.who{display:flex;gap:8px}
-.pickBtn,.who button{flex:1;min-width:0;min-height:52px;padding:8px 10px;border:2px solid #4a4d52;border-radius:12px;background:#26282c;color:#ece8dc;font:700 17px Rubik,Arial,sans-serif;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pickBtns,.who{display:flex;flex-wrap:wrap;gap:8px}
+.pickBtn,.who button{flex:1 1 110px;min-width:0;min-height:52px;padding:8px 10px;border:2px solid #4a4d52;border-radius:12px;background:#26282c;color:#ece8dc;font:700 17px Rubik,Arial,sans-serif;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pickBtn[aria-pressed=true],.who button[aria-pressed=true]{background:var(--yel);border-color:var(--yel);color:var(--ink)}
 .pickBtn[aria-pressed=true]::before{content:'✓ '}
 .pickBtn:focus-visible,.who button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 .whoWrap{margin-bottom:14px}
+.who .whoAdd{flex:1 1 170px;border-style:dashed;border-color:var(--yel);color:var(--yel)}
+.who .whoAdd[aria-pressed=true]{border-style:solid;color:var(--ink)}
+.timeRow{display:flex;gap:8px;align-items:stretch;margin-top:4px}
+.timeRow input{flex:1 1 auto;margin-top:0}
+.timeRow .btn{flex:none;min-height:50px;white-space:nowrap}
 
 /* date and time: tap opens the calendar / clock, no typing */
 input[type=date],input[type=time]{position:relative;cursor:pointer;background-repeat:no-repeat;background-position:left 12px center;background-size:22px 22px;padding-left:44px}
@@ -310,10 +320,8 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
     </div>
     <div class="card">
       <div class="ch"><span class="no">04</span><h2>אחריות הרוכש מ־ (סעיף 3)</h2></div>
-      <div class="row">
-        <label>תאריך<input id="f_resp" type="date"></label>
-        <label>שעה<input id="f_hour" type="time"></label>
-      </div>
+      <label>תאריך<input id="f_resp" type="date"></label>
+      <label>שעה<span class="timeRow"><input id="f_hour" type="time"><button class="btn sm" id="addHour" type="button">הוסף שעה</button></span></label>
     </div>
     <div class="clip">
       <span class="clamp" aria-hidden="true"><i></i></span>
@@ -342,7 +350,7 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
   </section>
 
   <section id="tab-set" hidden>
-    <div class="whoWrap"><span class="pickL">של מי הפרטים?</span><div class="who" id="whoBtns"><button type="button" data-slot="0" aria-pressed="true">אדם 1</button><button type="button" data-slot="1" aria-pressed="false">אדם 2</button></div></div>
+    <div class="whoWrap"><span class="pickL">משתמשים</span><div class="who" id="whoBtns"></div></div>
     <div id="setMsg" class="msg"></div>
     <div class="card">
       <div class="ch"><span class="no">01</span><h2>פרטי הרוכש (נשמרים פעם אחת)</h2></div>
@@ -575,15 +583,15 @@ async function deliver(blob,name,type,meta){const file=new File([blob],name,{typ
 
 /* ---------- state ---------- */
 let people=lsGet('tow.people',null);
-if(!Array.isArray(people)){const old=lsGet('tow.settings',{});people=[old&&old.name?old:{},{}];lsSet('tow.people',people)}
-while(people.length<2)people.push({});
-let active=+lsGet('tow.active',0)||0;if(active!==1)active=0;
+if(!Array.isArray(people)){const old=lsGet('tow.settings',{});people=old&&old.name?[old]:[]}
+let active=+lsGet('tow.active',0)||0;
+{const keep=people.map((p,i)=>p&&p.name?i:-1).filter(i=>i>=0);active=keep.indexOf(active);people=keep.map(i=>people[i])}
 const hasP=i=>!!(people[i]&&people[i].name);
-const anyP=()=>hasP(0)||hasP(1);
+const anyP=()=>people.length>0;
 let settings={};
-function pickActive(){if(!hasP(active)){const o=[0,1].find(hasP);if(o!=null)active=o}settings=hasP(active)?people[active]:{}}
+function pickActive(){if(!hasP(active))active=people.length?0:-1;settings=active>=0?people[active]:{}}
 pickActive();
-let editSlot=active;
+let editSlot=active; /* -1 = adding a new user */
 const savePeople=()=>lsSet('tow.people',people)&&lsSet('tow.active',active)&&lsSet('tow.settings',settings);
 const FIELDS=['car','year','date','price','words','s_name','s_id','s_phone','s_address','s_city','resp','hour'];
 const sigSeller=SigPad($('sigSeller')),sigBuyer=SigPad($('sigBuyer'));
@@ -593,7 +601,6 @@ function fillDefaults(force){const d=force?{}:lsGet('tow.draft',{});
   FIELDS.forEach(k=>{$('f_'+k).value=d[k]??''});
   if(!$('f_date').value)$('f_date').value=todayISO();
   if(!$('f_resp').value)$('f_resp').value=$('f_date').value;
-  if(!$('f_hour').value)$('f_hour').value=nowHM();
   if(!$('f_price').value&&settings.price)$('f_price').value=settings.price;
   wordsTouched=!!d.wordsTouched;pendingId=d.pendingId||null;if(!wordsTouched)$('f_words').value=shekelWords($('f_price').value);
   checkId('f_s_id','h_s_id')}
@@ -605,13 +612,14 @@ function showBuyer(){const any=anyP();
   $('newMsg').innerHTML=any?'':'צריך למלא פעם אחת את <b>הפרטים שלך והחתימה</b> בלשונית "הפרטים שלי".';
   $('newMsg').className='msg'+(any?'':' warn');
   $('buyerPick').hidden=!any;
-  $('pickBtns').innerHTML=[0,1].filter(hasP).map(i=>'<button type="button" class="pickBtn" data-slot="'+i+'" aria-pressed="'+(i===active)+'">'+esc(people[i].name)+'</button>').join('')}
-function renderWho(){document.querySelectorAll('#whoBtns [data-slot]').forEach(b=>{const i=+b.dataset.slot;b.textContent=hasP(i)?people[i].name:'אדם '+(i+1);b.setAttribute('aria-pressed',i===editSlot)})}
-function loadSettings(){const p=people[editSlot]||{};setLocked(!!(p.name&&p.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=p[k]||'');sigBuyer.set(p.sig||'');checkId('b_id','h_b_id');renderWho()}
+  $('pickBtns').innerHTML=people.map((p,i)=>i).map(i=>'<button type="button" class="pickBtn" data-slot="'+i+'" aria-pressed="'+(i===active)+'">'+esc(people[i].name)+'</button>').join('')}
+function renderWho(){$('whoBtns').innerHTML=people.map((p,i)=>'<button type="button" data-slot="'+i+'" aria-pressed="'+(i===editSlot)+'">'+esc(p.name)+'</button>').join('')+'<button type="button" class="whoAdd" data-slot="-1" aria-pressed="'+(editSlot<0)+'">+ הוסף משתמש</button>'}
+function loadSettings(){const p=editSlot>=0&&people[editSlot]||{};setLocked(!!(p.name&&p.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=p[k]||'');sigBuyer.set(p.sig||'');checkId('b_id','h_b_id');renderWho()}
 function priceFromBuyer(){if(!$('f_price').value&&settings.price){$('f_price').value=settings.price;if(!wordsTouched)$('f_words').value=shekelWords(settings.price);saveDraft()}}
 $('pickBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;active=+b.dataset.slot;pickActive();savePeople();showBuyer();priceFromBuyer()});
-$('whoBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;editSlot=+b.dataset.slot;
-  $('setOk').textContent='';$('setMsg').textContent='';$('setMsg').className='msg';$('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').textContent='';loadSettings()});
+$('whoBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;const i=+b.dataset.slot;editSlot=i;
+  if(i>=0){active=i;pickActive();savePeople();showBuyer();priceFromBuyer()}
+  $('setOk').textContent='';$('setMsg').textContent='';$('setMsg').className='msg';$('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').textContent='';loadSettings();setLocked(false)});
 
 /* ---------- tabs ---------- */
 function tab(name){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===name));
@@ -628,6 +636,7 @@ FIELDS.forEach(k=>$('f_'+k).addEventListener('input',()=>{$('f_'+k).classList.re
   if(k==='date')$('f_resp').value=$('f_date').value;
   if(k==='s_id')checkId('f_s_id','h_s_id');saveDraft()}));
 $('b_id').addEventListener('input',()=>checkId('b_id','h_b_id'));
+$('addHour').onclick=()=>{const i=$('f_hour');i.value=nowHM();i.dispatchEvent(new Event('input',{bubbles:true}))};
 ['f_date','f_resp','f_hour'].forEach(id=>{const i=$(id);i.setAttribute('inputmode','none');
   i.addEventListener('keydown',e=>{if(e.key!=='Tab')e.preventDefault()});
   i.addEventListener('paste',e=>e.preventDefault());
@@ -649,10 +658,11 @@ $('clrYes').onclick=()=>{newForm();$('clrDone').textContent='הטופס נוקה
 $('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';$('b_name').focus();return}
   const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
   if(!n.name||!n.sig){$('setMsg').className='msg bad';$('setMsg').textContent='צריך לפחות שם וחתימה.';return}
-  const prev=people[editSlot];people[editSlot]=n;if(!hasP(active)||editSlot===active)active=editSlot;pickActive();
-  if(!savePeople()){people[editSlot]=prev;pickActive();$('setMsg').className='msg bad';$('setMsg').textContent='השמירה נכשלה בדפדפן הזה.';return}
+  const isNew=editSlot<0,prev=isNew?null:people[editSlot],prevActive=active;
+  if(isNew){people.push(n);editSlot=people.length-1}else people[editSlot]=n;active=editSlot;pickActive();
+  if(!savePeople()){if(isNew){people.pop();editSlot=-1}else people[editSlot]=prev;active=prevActive;pickActive();$('setMsg').className='msg bad';$('setMsg').textContent='השמירה נכשלה בדפדפן הזה.';return}
   $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='נשמר';setLocked(true);renderWho();showBuyer();
-  if(editSlot===active)priceFromBuyer()};
+  priceFromBuyer()};
 
 /* ---------- create agreement (nothing is required) ---------- */
 const DEAL_FIELDS=['car','year','price','words','s_name','s_id','s_phone','s_address','s_city'];
@@ -724,7 +734,7 @@ $('exp').onclick=async()=>{const data=JSON.stringify({app:'tow-forms',v:1,settin
   $('bkNote').className='note'+(r==='fail'?'':' ok');$('bkNote').textContent=r==='fail'?'לא הצלחתי לשמור כאן.':(r==='cancel'?'':'הגיבוי נשמר.')};
 $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(!Array.isArray(j.deals))throw 0;for(const d of j.deals)await store.put(d);
-    if(!anyP()){if(Array.isArray(j.people)&&j.people.some(p=>p&&p.name)){people=[j.people[0]||{},j.people[1]||{}];active=j.active===1?1:0}else if(j.settings&&j.settings.name)people=[j.settings,{}];
+    if(!anyP()){if(Array.isArray(j.people)&&j.people.some(p=>p&&p.name))people=j.people.filter(p=>p&&p.name);else if(j.settings&&j.settings.name)people=[j.settings];active=0;
       pickActive();editSlot=active;savePeople();loadSettings();showBuyer()}
     $('bkNote').className='note ok';$('bkNote').textContent='נטענו '+j.deals.length+' הסכמים.'}
   catch(err){$('bkNote').className='note';$('bkNote').textContent='הקובץ לא נראה כמו גיבוי של האפליקציה.'}
@@ -733,7 +743,7 @@ $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)ret
 /* ---------- reset my details ---------- */
 $('rst').onclick=()=>{$('rstAsk').hidden=false;$('rstBar').hidden=true;$('rstNote').textContent='';$('rstNo').focus()};
 $('rstNo').onclick=()=>{$('rstAsk').hidden=true;$('rstBar').hidden=false};
-$('rstYes').onclick=()=>{people[editSlot]={};pickActive();savePeople();setLocked(false);
+$('rstYes').onclick=()=>{const del=editSlot;if(del>=0){people.splice(del,1);if(active>del)active--;else if(active===del)active=-1}pickActive();editSlot=-1;savePeople();setLocked(false);
   ['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value='');sigBuyer.clear();checkId('b_id','h_b_id');
   $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='';
   $('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').className='note ok';$('rstNote').textContent='הפרטים אופסו. אפשר למלא מחדש.';renderWho();showBuyer();window.scrollTo(0,0)};
