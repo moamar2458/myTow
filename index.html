@@ -173,6 +173,22 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .ck s{color:#6b665c}
 .go .msg{max-width:680px;margin:0 auto 10px}
 
+/* in-app camera */
+.camView{position:fixed;inset:0;z-index:30;background:#000;color:#fff}
+.camView video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.camTop{position:absolute;top:0;inset-inline:0;z-index:2;display:flex;justify-content:flex-end;padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:linear-gradient(rgba(0,0,0,.55),transparent)}
+.camX{width:50px;height:50px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;cursor:pointer}
+.camX svg{width:26px;height:26px}
+.camMsg{position:absolute;top:38%;inset-inline:20px;z-index:2;margin:0;text-align:center;font-size:18px;font-weight:600;line-height:1.5}
+.camMsg:empty{display:none}
+.camBar{position:absolute;bottom:0;inset-inline:0;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px;padding:22px 16px calc(24px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8) 35%)}
+.camBar.nocam{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.camSide{display:flex;align-items:center;justify-content:center;gap:6px;min-height:54px;padding:8px 10px;border:2px solid #fff;border-radius:14px;background:rgba(0,0,0,.45);color:#fff;font:700 16px Rubik,Arial,sans-serif;cursor:pointer}
+.camSide svg{flex:none;width:22px;height:22px}
+.camShot{width:80px;height:80px;border-radius:50%;border:5px solid #fff;background:var(--yel);box-shadow:0 0 0 3px rgba(0,0,0,.45);cursor:pointer}
+.camShot:active{transform:scale(.92)}
+.camX:focus-visible,.camSide:focus-visible,.camShot:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
+
 /* history */
 .sum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .sum div{overflow:hidden;border-radius:14px;border:2px solid #3a3d42;background:#26282c;color:#fff;padding:0 14px 12px}
@@ -260,6 +276,7 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
       <span>צילום מסמך או רכב<small id="scanSub">לצלם עכשיו, או לבחור תמונה שמורה או קובץ. מסמך: כל הפרטים יתמלאו. רכב או לוחית: רק מספר הרכב.</small></span>
     </button>
     <input id="scanFile" type="file" accept="image/*,application/pdf" hidden>
+    <input id="scanAlbum" type="file" accept="image/*" hidden>
     <p id="scanMsg" class="scanMsg"></p>
     <div class="msg ask" id="scanAsk" hidden>
       <b>בשדות האלה כבר כתוב משהו. להחליף במה שנמצא בתמונה?</b>
@@ -381,6 +398,17 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
       <button class="btn" id="shNew" style="grid-column:1/-1">הסכם חדש</button>
     </div>
     <p id="shNote" class="note"></p>
+  </div>
+</div>
+
+<div class="camView" id="camView" hidden role="dialog" aria-modal="true" aria-label="מצלמה">
+  <video id="camVid" playsinline muted autoplay></video>
+  <div class="camTop"><button class="camX" id="camClose" type="button" aria-label="סגירה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <p class="camMsg" id="camMsg"></p>
+  <div class="camBar" id="camBar">
+    <button class="camSide" id="camAlbum" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>מהאלבום</button>
+    <button class="camShot" id="camShot" type="button" aria-label="צילום"></button>
+    <button class="camSide" id="camFile" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>קובץ</button>
   </div>
 </div>
 
@@ -786,8 +814,7 @@ $('scanAskYes').onclick=()=>{let n=0;if(scanPending)document.querySelectorAll('#
   checkId('f_s_id','h_s_id');saveDraft();scanPending=null;$('scanAsk').hidden=true;
   const msg=$('scanMsg');msg.className='scanMsg ok';msg.textContent=n?'הוחלפו '+n+' שדות (מסומנים בירוק).':'לא הוחלף כלום.'};
 $('scanAskNo').onclick=()=>{scanPending=null;$('scanAsk').hidden=true};
-$('scanBtn').onclick=()=>$('scanFile').click();
-$('scanFile').addEventListener('change',async e=>{let file=e.target.files[0];e.target.value='';if(!file)return;
+async function scanRun(file){if(!file)return;
   const msg=$('scanMsg'),btn=$('scanBtn');$('scanAsk').hidden=true;scanPending=null;const say=t=>{msg.className='scanMsg';msg.textContent=t};btn.disabled=true;
   try{let r;if(file.type==='application/pdf'||/\.pdf$/i.test(file.name))file=await pdfToImage(file,say);const s=await getSampler();
     if(s){say('Claude קורא את התמונה…');const c=await imgToCanvas(file,1800,0);const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',0.9));r=await s.json(SCAN_PROMPT,{images:[blob]})}
@@ -798,7 +825,26 @@ $('scanFile').addEventListener('change',async e=>{let file=e.target.files[0];e.t
     else{msg.className='scanMsg bad';msg.textContent='לא הצלחתי לקרוא פרטים מהתמונה. כדאי לצלם שוב, ישר, באור טוב ובלי השתקפויות.'}}
   catch(err){msg.className='scanMsg bad';const c=err&&err.code;
     msg.textContent=c==='not_granted'?'צריך לאשר ל-Claude לקרוא את התמונה כדי שזה יעבוד.':c==='rate_limited'?'יותר מדי בקשות כרגע. לנסות שוב עוד דקה.':c==='image_rejected'?'התמונה לא מתאימה. לנסות לצלם שוב.':(err&&err.message==='script')?'אין חיבור לאינטרנט לטעינת קורא הטקסט.':'לא הצלחתי לקרוא את הרישיון. לנסות לצלם שוב.'}
-  finally{btn.disabled=false}});
+  finally{btn.disabled=false}}
+
+/* ---------- in-app camera: photo, album or file ---------- */
+let camStream=null;
+function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}$('camVid').srcObject=null}
+function closeCam(){stopCam();$('camView').hidden=true;document.body.style.overflow=''}
+function camNoCam(t){stopCam();$('camShot').hidden=true;$('camVid').hidden=true;$('camBar').classList.add('nocam');$('camMsg').textContent=t}
+async function openCam(){$('camView').hidden=false;document.body.style.overflow='hidden';$('camMsg').textContent='';$('camShot').hidden=false;$('camVid').hidden=false;$('camBar').classList.remove('nocam');
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){camNoCam('המצלמה לא זמינה כאן. אפשר לבחור תמונה מהאלבום או קובץ.');return}
+  try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    if($('camView').hidden){st.getTracks().forEach(t=>t.stop());return}
+    camStream=st;const vid=$('camVid');vid.srcObject=st;await vid.play().catch(()=>{})}
+  catch(e){camNoCam(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')?'אין אישור להשתמש במצלמה. אפשר לבחור תמונה מהאלבום או קובץ.':'לא הצלחתי לפתוח את המצלמה. אפשר לבחור תמונה מהאלבום או קובץ.')}}
+$('scanBtn').onclick=openCam;
+$('camClose').onclick=closeCam;
+$('camShot').onclick=()=>{const vid=$('camVid');if(!vid.videoWidth)return;const c=document.createElement('canvas');c.width=vid.videoWidth;c.height=vid.videoHeight;c.getContext('2d').drawImage(vid,0,0);
+  closeCam();c.toBlob(b=>{if(b)scanRun(new File([b],'photo.jpg',{type:'image/jpeg'}))},'image/jpeg',0.92)};
+$('camAlbum').onclick=()=>$('scanAlbum').click();
+$('camFile').onclick=()=>$('scanFile').click();
+['scanAlbum','scanFile'].forEach(id=>$(id).addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;closeCam();scanRun(f)}));
 ['car','year','s_name','s_id','s_address','s_city'].forEach(k=>$('f_'+k).addEventListener('input',()=>$('f_'+k).classList.remove('filled')));
 
 /* ---------- microphone in every field ---------- */
