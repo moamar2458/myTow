@@ -192,9 +192,10 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .camMsg{position:absolute;top:38%;inset-inline:20px;z-index:2;margin:0;text-align:center;font-size:18px;font-weight:600;line-height:1.5}
 .camMsg:empty{display:none}
 .camBar{position:absolute;bottom:0;inset-inline:0;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px;padding:22px 16px calc(24px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8) 35%)}
-.camBar.nocam{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.camSide{display:flex;align-items:center;justify-content:center;gap:6px;min-height:54px;padding:8px 10px;border:2px solid #fff;border-radius:14px;background:rgba(0,0,0,.45);color:#fff;font:700 16px Rubik,Arial,sans-serif;cursor:pointer}
-.camSide svg{flex:none;width:22px;height:22px}
+.camBar.nocam{grid-template-columns:minmax(0,1fr)}
+.camBar.nocam .camSpacer{display:none}
+.camSide{display:flex;align-items:center;justify-content:center;gap:5px;min-height:54px;padding:8px 6px;white-space:nowrap;border:2px solid #fff;border-radius:14px;background:rgba(0,0,0,.45);color:#fff;font:700 16px Rubik,Arial,sans-serif;cursor:pointer}
+.camSide svg{flex:none;width:20px;height:20px}
 .camShot{width:80px;height:80px;border-radius:50%;border:5px solid #fff;background:var(--yel);box-shadow:0 0 0 3px rgba(0,0,0,.45);cursor:pointer}
 .camShot:active{transform:scale(.92)}
 .camX:focus-visible,.camSide:focus-visible,.camShot:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
@@ -286,7 +287,6 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
       <span>צילום מסמך או רכב<small id="scanSub">לצלם עכשיו, או לבחור תמונה שמורה או קובץ. מסמך: כל הפרטים יתמלאו. רכב או לוחית: רק מספר הרכב.</small></span>
     </button>
     <input id="scanFile" type="file" accept="image/*,application/pdf" hidden>
-    <input id="scanAlbum" type="file" accept="image/*" hidden>
     <p id="scanMsg" class="scanMsg"></p>
     <div class="msg ask" id="scanAsk" hidden>
       <b>בשדות האלה כבר כתוב משהו. להחליף במה שנמצא בתמונה?</b>
@@ -414,9 +414,9 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
   <div class="camTop"><button class="camX" id="camClose" type="button" aria-label="סגירה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <p class="camMsg" id="camMsg"></p>
   <div class="camBar" id="camBar">
-    <button class="camSide" id="camAlbum" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>מהאלבום</button>
+    <button class="camSide" id="camOther" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>ממקור אחר</button>
     <button class="camShot" id="camShot" type="button" aria-label="צילום"></button>
-    <button class="camSide" id="camFile" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>קובץ</button>
+    <span class="camSpacer" aria-hidden="true"></span>
   </div>
 </div>
 
@@ -843,18 +843,17 @@ function stopCam(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camS
 function closeCam(){stopCam();$('camView').hidden=true;document.body.style.overflow=''}
 function camNoCam(t){stopCam();$('camShot').hidden=true;$('camVid').hidden=true;$('camBar').classList.add('nocam');$('camMsg').textContent=t}
 async function openCam(){$('camView').hidden=false;document.body.style.overflow='hidden';$('camMsg').textContent='';$('camShot').hidden=false;$('camVid').hidden=false;$('camBar').classList.remove('nocam');
-  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){camNoCam('המצלמה לא זמינה כאן. אפשר לבחור תמונה מהאלבום או קובץ.');return}
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){camNoCam('המצלמה לא זמינה כאן. אפשר לבחור תמונה או קובץ ממקור אחר.');return}
   try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
     if($('camView').hidden){st.getTracks().forEach(t=>t.stop());return}
     camStream=st;const vid=$('camVid');vid.srcObject=st;await vid.play().catch(()=>{})}
-  catch(e){camNoCam(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')?'אין אישור להשתמש במצלמה. אפשר לבחור תמונה מהאלבום או קובץ.':'לא הצלחתי לפתוח את המצלמה. אפשר לבחור תמונה מהאלבום או קובץ.')}}
+  catch(e){camNoCam(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')?'אין אישור להשתמש במצלמה. אפשר לבחור תמונה או קובץ ממקור אחר.':'לא הצלחתי לפתוח את המצלמה. אפשר לבחור תמונה או קובץ ממקור אחר.')}}
 $('scanBtn').onclick=openCam;
 $('camClose').onclick=closeCam;
 $('camShot').onclick=()=>{const vid=$('camVid');if(!vid.videoWidth)return;const c=document.createElement('canvas');c.width=vid.videoWidth;c.height=vid.videoHeight;c.getContext('2d').drawImage(vid,0,0);
   closeCam();c.toBlob(b=>{if(b)scanRun(new File([b],'photo.jpg',{type:'image/jpeg'}))},'image/jpeg',0.92)};
-$('camAlbum').onclick=()=>$('scanAlbum').click();
-$('camFile').onclick=()=>$('scanFile').click();
-['scanAlbum','scanFile'].forEach(id=>$(id).addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;closeCam();scanRun(f)}));
+$('camOther').onclick=()=>$('scanFile').click();
+$('scanFile').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;closeCam();scanRun(f)});
 ['car','year','s_name','s_id','s_address','s_city'].forEach(k=>$('f_'+k).addEventListener('input',()=>$('f_'+k).classList.remove('filled')));
 
 /* ---------- microphone in every field ---------- */
