@@ -756,7 +756,7 @@ const SCAN_PROMPT='Look at this photo and decide what it shows.\n'+
  '"vehicle": a photo of a car, or of a licence plate only.\n'+
  'Return ONLY JSON in this shape:\n{"kind":"document","car_number":"9953931","year":"2015","owner_name":"ישראל ישראלי","owner_id":"037398328","owner_phone":"0501234567","owner_address":"הרצל 12","owner_city":"כפר סבא"}\n'+
  'If kind is "vehicle": fill ONLY car_number, read from the Israeli licence plate, digits only. Every other field must be null, even if the photo shows other text, phone numbers, stickers or signs.\n'+
- 'If kind is "document": fill every field you can read clearly. car_number: the vehicle number (מספר רכב), digits only. year: the year of manufacture as 4 digits. On an Israeli vehicle licence it is the field "רישום מקורי" (original registration), written like 03/2015 or 2015: return only the year (2015). If a field "שנת ייצור" or "שנת יצור" is present, use it. Only if none of these exist, use the year of "מועד עליה לכביש". owner_name: the person on the paper (owner, seller or customer), as written. owner_id: Israeli ID number (ת"ז), 9 digits including the check digit after the dash. owner_phone: phone number, digits only. owner_address: street and house number. owner_city: the city name only, without the zip code. On a vehicle licence the owner address is in "מען" or "כתובת", usually as "street number city-zip".\n'+
+ 'If kind is "document": fill every field you can read clearly. car_number: the vehicle number (מספר רכב), digits only. year: 4 digits, taken ONLY from the date printed next to the label "רישום מקורי" (original registration), written like 03/2015 or 2015, so return 2015; or from a field labelled "שנת ייצור" or "שנת יצור" if printed. IGNORE every other date on the licence: ownership dates (בעלות, העברת בעלות, תאריך רישום בעלות), test or validity dates (תוקף, טסט, בתוקף עד), "מועד עליה לכביש" and the licence issue date. If none of those labels is visible, year must be null. Never guess the year from any other date. owner_name: the person on the paper (owner, seller or customer), as written. owner_id: Israeli ID number (ת"ז), 9 digits including the check digit after the dash. owner_phone: phone number, digits only. owner_address: street and house number. owner_city: the city name only, without the zip code. On a vehicle licence the owner address is in "מען" or "כתובת", usually as "street number city-zip".\n'+
  'Any field you cannot see clearly: null. Do not guess.';
 function imgToCanvas(file,maxSide,rot){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,maxSide/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
   const c=document.createElement('canvas'),sw=rot%180?h:w,sh=rot%180?w:h;c.width=sw;c.height=sh;const x=c.getContext('2d');x.translate(sw/2,sh/2);x.rotate(rot*Math.PI/180);x.drawImage(im,-w/2,-h/2,w,h);URL.revokeObjectURL(u);res(c)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
@@ -769,14 +769,19 @@ async function pdfToImage(file,say){say('פותח את הקובץ…');await loa
   await page.render({canvasContext:x,viewport:vp}).promise;
   const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',0.92));return new File([blob],'page1.jpg',{type:'image/jpeg'})}
 function loadScript(src){return new Promise((res,rej)=>{if(window.Tesseract)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.append(s)})}
+/* a year written before its label (right-to-left reading), but not when it belongs to an ownership / validity date */
+function yearBefore(flat,label){const re=new RegExp('((?:19|20)\\d{2})[^\\d\\nא-ת]{0,6}'+label,'g');let m;
+  while((m=re.exec(flat))){const pre=flat.slice(Math.max(0,m.index-30),m.index).split('\n').pop();
+    if(/\d$/.test(pre.replace(/\s*[\/.\-]\s*$/,'').slice(-1))&&!/\d{1,2}\s*[\/.\-]\s*$/.test(pre))continue;
+    if(!/(בעלות|תוקף|טסט|עד|לכביש|הנפקה|הוצאה)[^\d]{0,12}(\d{1,2}\s*[\/.\-]\s*)?$/.test(pre))return m}return null}
 function parseOcr(t){const out={};const flat=t.replace(/[Oo]/g,'0');
   let m=flat.match(/(\d{8})\s*[-–]\s*(\d)\b/);if(m&&idOk(m[1]+m[2]))out.owner_id=m[1]+m[2];
   if(!out.owner_id){for(const n of flat.match(/\b\d{9}\b/g)||[])if(idOk(n)&&!/^0{3}/.test(n)){out.owner_id=n;break}}
   m=flat.match(/מספר\s*רכב[^\d]{0,25}(\d{2,3}[- ]?\d{2,3}[- ]?\d{2,3})/);
   if(m)out.car_number=m[1].replace(/\D/g,'');
   if(!out.car_number){const zips=[...flat.matchAll(/[א-ת]\s*-\s*(\d{5,7})/g)].map(x=>x[1]);const c=(flat.match(/\b\d{7,8}\b/g)||[]).find(n=>!(out.owner_id||'').includes(n)&&!zips.includes(n));if(c)out.car_number=c}
-  m=flat.match(/רישום\s*מקורי[^\d\n]{0,20}(?:\d{1,2}\s*[\/.\-]\s*)?((?:19|20)\d{2})/)||flat.match(/((?:19|20)\d{2})[^\d\n]{0,20}רישום\s*מקורי/)||flat.match(/שנת\s*יי?צור[^\d]{0,15}((?:19|20)\d{2})/)||flat.match(/(?:לכביש|עליה)[^\d]{0,25}\d{1,2}\s*\/\s*((?:19|20)\d{2})/)||flat.match(/\d{1,2}\s*\/\s*((?:19|20)\d{2})[^\d\n]{0,25}(?:עליה|לכביש)/);
-  if(m)out.year=m[1];else{const ys=[...flat.matchAll(/\b\d{2}\/((?:19|20)\d{2})\b/g)].map(x=>+x[1]).filter(y=>y<=new Date().getFullYear());if(ys.length)out.year=String(Math.min(...ys))}
+  m=flat.match(/רישום\s*מקורי[^\d\n]{0,20}(?:\d{1,2}\s*[\/.\-]\s*)?((?:19|20)\d{2})/)||yearBefore(flat,'רישום\\s*מקורי')||flat.match(/שנת\s*יי?צור[^\d\n]{0,15}(?:\d{1,2}\s*[\/.\-]\s*)?((?:19|20)\d{2})/)||yearBefore(flat,'שנת\\s*יי?צור');
+  if(m)out.year=m[1];
   m=t.match(/שם\s*(?:ה)?בעלים[:\s]+([א-ת'"׳ ]{3,30})/);if(m)out.owner_name=m[1].trim();
   {const lines=t.split('\n');const ml=lines.find(l=>/מען|כתובת/.test(l))||lines.find(l=>/[א-ת]\s*-\s*\d{5,7}/.test(l))||'';
     const src=ml.replace(/^.*?(?:מען|כתובת)[:\s]*/,'');
