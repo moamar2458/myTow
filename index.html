@@ -428,9 +428,6 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
     <img id="shImg" alt="תצוגה של ההסכם">
     <div class="acts">
       <button class="btn pri" id="shShare">שליחה בוואטסאפ / מייל</button>
-      <a class="btn wa" id="shWa" target="_blank" rel="noopener">צ'אט עם המוכר</a>
-      <button class="btn" id="shMail" type="button">מייל</button>
-      <button class="btn" id="shNew" style="grid-column:1/-1">הסכם חדש</button>
     </div>
     <p id="shNote" class="note"></p>
   </div>
@@ -753,23 +750,21 @@ async function openSheet(rec,fresh){const c=await drawDoc(rec);const {blob,previ
   cur={rec,blob,fresh,name:'agreement-'+(String(rec.car).replace(/[^0-9A-Za-z]/g,'')||'vehicle')+'.pdf'};
   $('shImg').src=preview;$('shTitle').textContent=fresh?'ההסכם נשמר ומוכן לשליחה':'הסכם רכב '+rec.car;
   const txt="שלום, מצורף הסכם מכירת שרידי רכב מס' "+rec.car+'.';
-  const n=waNum(rec.seller.phone);const wa=$('shWa');
-  if(n){wa.href='https://wa.me/'+n+'?text='+encodeURIComponent(txt);wa.hidden=false}else wa.hidden=true;
   cur.title="הסכם מכירה – רכב "+rec.car;cur.text=txt;
   $('shShare').textContent=canShareFiles()?'שליחת ה-PDF (וואטסאפ / מייל)':'הורדת ה-PDF';
-  $('shNew').hidden=!fresh;
   $('shNote').className='note';$('shNote').textContent=canShareFiles()?'':'אחרי השמירה: לפתוח את הצ׳אט ולצרף את הקובץ מההורדות.';
   $('sheet').hidden=false}
 $('shClose').onclick=()=>{$('sheet').hidden=true};
 $('sheet').addEventListener('click',e=>{if(e.target===$('sheet'))$('sheet').hidden=true});
-$('shNew').onclick=()=>{$('sheet').hidden=true;newForm()};
-function sentDone(){if(cur&&cur.fresh&&pendingId===cur.rec.id){newForm();$('clrDone').textContent='ההסכם נשמר בהיסטוריה, והטופס נוקה להסכם הבא.';$('clrDone').hidden=false}}
-$('shWa').addEventListener('click',()=>setTimeout(sentDone,0));
-async function sendPdf(){if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf',{title:cur.name});const n=$('shNote');if(r==='shared'||r==='saved')sentDone();
+/* after a new agreement is sent: back to "הסכם חדש" with a clean form (the user's own details stay) */
+function sentDone(r){if(!(cur&&cur.fresh&&pendingId===cur.rec.id))return false;
+  $('sheet').hidden=true;tab('new');newForm();
+  $('clrDone').textContent=(r==='saved'?'ה-PDF הורד, אפשר לצרף אותו מהקבצים במייל או בוואטסאפ. ':'ה-PDF נשלח. ')+'ההסכם נשמר בהיסטוריה, והטופס נוקה להסכם הבא.';$('clrDone').hidden=false;return true}
+async function sendPdf(){if(!cur)return;const r=await deliver(cur.blob,cur.name,'application/pdf',{title:cur.name});const n=$('shNote');if((r==='shared'||r==='saved')&&sentDone(r))return;
   if(r==='shared'){n.className='note ok';n.textContent='נשלח.'}
   else if(r==='saved'){n.className='note ok';n.textContent='השיתוף לא זמין כאן, אז ה-PDF הורד. אפשר לצרף אותו מהקבצים במייל או בוואטסאפ.'}
   else if(r==='fail'){n.className='note';n.textContent='לא הצלחתי לשמור כאן. כדאי לפתוח את האפליקציה בדפדפן רגיל.'}}
-$('shShare').onclick=sendPdf;$('shMail').onclick=sendPdf;
+$('shShare').onclick=sendPdf;
 
 /* ---------- history ---------- */
 let all=[];
