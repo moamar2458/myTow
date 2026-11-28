@@ -825,7 +825,22 @@ async function pdfToImage(file,say){say('פותח את הקובץ…');await loa
   const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',0.92));return new File([blob],'page1.jpg',{type:'image/jpeg'})}
 function loadScript(src){return new Promise((res,rej)=>{if(window.Tesseract)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.append(s)})}
 /* ---- year of manufacture: "מועד עלייה לכביש" first, then "רישום מקורי"; never "תאריך רישום" or test dates ---- */
-const yearOk=y=>{y=+y;return y>=1950&&y<=new Date().getFullYear()+1};
+const yearOk=y=>{y=+y;return y>=1950&&y<=new Date().getFullYear()};
+/* the year inside one number as OCR reads it: 03/2015, 03.2015, 0312015 or 032015 (last 4 digits), or a plain 2015 */
+function tokYear(tok){tok=String(tok).replace(/[Oo]/g,'0');
+  if(/[\/.\-]/.test(tok)){const last=tok.split(/[\/.\-]/).pop();return last.length===4&&yearOk(last)?{y:last,date:true}:null}
+  const d=tok.replace(/\D/g,'');
+  if(d.length>=6&&d.length<=8){const y=d.slice(-4);return yearOk(y)?{y,date:true}:null}
+  if(d.length===4&&yearOk(d))return {y:d,date:false};
+  return null}
+/* the year on the same line as a label, even when OCR glues words together ("מועדעליה לכביש 1908 0412015") */
+function yearOnLine(line,from){const pick=txt=>{const c=(txt.match(/\d[\d\/.\-]*\d|\d/g)||[]).map(tokYear).filter(Boolean);const d=c.find(x=>x.date)||c[0];return d?d.y:''};
+  const y=pick(line.slice(from));if(y)return y;
+  const before=line.slice(0,from);return /תאריך|תוקף|טסט|בעלות|מקור|כביש/.test(before)?'':pick(before)}
+function yearLoose(t){const L=String(t||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'').split('\n');
+  const tries=[['road',l=>/על[יי]{1,2}ה/.test(l)&&/כביש/.test(l),/כביש/],['orig',l=>/רישו?ם/.test(l)&&/מקור/.test(l),/מקורי?/]];
+  for(const [k,has,re] of tries)for(const l of L){if(!has(l))continue;const m=l.match(re);const y=yearOnLine(l,m?m.index:0);if(y)return {y,from:YEAR_FROM[k]}}
+  return {}}
 const YEAR_FROM={road:'מועד עלייה לכביש',orig:'רישום מקורי',made:'שנת ייצור'};
 function wordsOf(d){if(d&&d.words&&d.words.length)return d.words;const w=[];((d&&d.blocks)||[]).forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>(l.words||[]).forEach(x=>w.push(x)))));return w}
 function yearFromWords(words){
@@ -850,9 +865,10 @@ function yearFromWords(words){
     if(dy>0&&dy<H*4.5){const dx=Math.abs(cx(D)-cx(L.b)),wd=Math.max(L.b.x1-L.b.x0,D.x1-D.x0);return dx<wd*0.8+H?dy*1.5+dx:Infinity}
     return Infinity};
   const best={};
-  W.forEach(w=>{const m=w.t.match(/(?:^|\D)((?:19|20)\d{2})(?!\d)/);if(!m||!yearOk(m[1]))return;
+  W.forEach(w=>{const ty=tokYear(w.t);if(!ty)return;
     let bl=null,bs=Infinity;labels.forEach(L=>{const sc=score(L,w.b);if(sc<bs){bs=sc;bl=L}});
-    if(bl&&bl.k in YEAR_FROM&&(!best[bl.k]||bs<best[bl.k].s))best[bl.k]={y:m[1],s:bs}});
+    const sc=bs+(ty.date?0:H*20); /* a real date beats a bare 4-digit number */
+    if(bl&&bl.k in YEAR_FROM&&(!best[bl.k]||sc<best[bl.k].s))best[bl.k]={y:ty.y,s:sc}});
   for(const k of ['road','orig','made'])if(best[k])return {y:best[k].y,from:YEAR_FROM[k]};
   return {}}
 function yearFromText(t){const L=String(t||'').replace(/[Oo]/g,'0').split('\n');const LAB=/תאריך|רישו?ם|כביש|מקור|תוקף|טסט|בעלות|יי?צור/;
@@ -887,7 +903,7 @@ async function ocrLocal(file,say){say('טוען את קורא הטקסט (פעם
   const w=await Tesseract.createWorker('heb+eng');const runs=[];
   try{for(const rot of [0,90,270]){say('קורא את התמונה…');const c=await imgToCanvas(file,2000,rot);const {data}=await w.recognize(c,{},{text:true,blocks:true});
     if(rot===0){const pl=plateFromOcr(data.text);if(pl)return {kind:'vehicle',car_number:pl,_raw:data.text}}
-    const out=parseOcr(data.text);let yr=yearFromWords(wordsOf(data));if(!yr.y)yr=yearFromText(data.text);
+    const out=parseOcr(data.text);let yr=yearLoose(data.text);if(!yr.y)yr=yearFromWords(wordsOf(data));if(!yr.y)yr=yearFromText(data.text);
     if(yr.y){out.year=yr.y;out._yearFrom=yr.from}
     runs.push({out,score:Object.keys(out).length+data.confidence/100,text:data.text});
     const m=merge(runs);if(['car_number','owner_id','year','owner_name','owner_city'].every(k=>m[k]))break}}
