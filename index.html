@@ -181,6 +181,13 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .ck{display:flex;gap:10px;align-items:flex-start;margin:10px 0 0;font-size:15px;font-weight:400;color:var(--ink);cursor:pointer}
 .ck input{flex:none;width:24px;min-width:24px;height:24px;min-height:0;margin:1px 0 0;padding:0;accent-color:var(--acc)}
 .ck s{color:#6b665c}
+.btn.red{background:var(--err);border-color:var(--err);color:#fff}
+.btn.wide{display:flex;width:100%;min-height:54px;font-size:18px}
+.setBack{margin-bottom:14px}
+.sub{margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--ink)}
+.flow .msg{margin:12px 0 0}
+.flow .bar .btn{flex:1 1 auto}
+#mUsers button{background:#fff;color:var(--ink);border-color:var(--line)}
 .raw{margin:-6px 0 12px;color:#ece8dc;font-size:14px}
 .raw summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
 .raw pre{margin:6px 0 0;padding:10px 12px;max-height:260px;overflow:auto;white-space:pre-wrap;direction:rtl;text-align:right;background:#111;color:#e6e2d6;border:1px solid #3a3d42;border-radius:10px;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
@@ -273,7 +280,7 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 <nav class="tabs" role="tablist">
   <button role="tab" data-tab="new" aria-selected="true">הסכם חדש</button>
   <button role="tab" data-tab="hist" aria-selected="false">היסטוריה</button>
-  <button role="tab" data-tab="set" aria-selected="false">הפרטים שלי</button>
+  <button role="tab" data-tab="set" aria-selected="false" id="tabSetBtn">הפרטים שלי</button>
 </nav>
 <main>
   <section id="tab-new">
@@ -353,10 +360,36 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
   </section>
 
   <section id="tab-set" hidden>
-    <div class="whoWrap"><span class="pickL">משתמשים</span><div class="who" id="whoBtns"></div></div>
+    <div id="setMenu" hidden>
+      <div class="card">
+        <div class="ch"><span class="no">01</span><h2>משתמשים</h2></div>
+        <button class="btn pri wide" id="mAdd" type="button">+ הוסף משתמש</button>
+        <p class="sub">עריכת משתמש</p>
+        <p class="small" style="margin:0 0 8px">לוחצים על שם כדי לערוך את הפרטים.</p>
+        <div class="who" id="mUsers"></div>
+        <p id="mUserNote" class="note ok"></p>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="no">02</span><h2>איפוס</h2></div>
+        <p class="small" style="margin-top:0">מוחק משתמשים: השם, ת"ז, טלפון, כתובת, עיר, מחיר ברירת מחדל והחתימה. ההיסטוריה של ההסכמים לא נמחקת.</p>
+        <div class="bar"><button class="btn sm danger" id="mReset" type="button">איפוס</button></div>
+        <div class="flow" id="mResetFlow"></div>
+        <p id="mResetNote" class="note ok"></p>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="no">03</span><h2>מחיקת היסטוריה</h2></div>
+        <p class="small" style="margin-top:0">מוחק הסכמים שנשמרו בהיסטוריה. כדאי לשמור גיבוי קודם.</p>
+        <div class="bar"><button class="btn sm danger" id="mHist" type="button">מחיקת היסטוריה</button></div>
+        <div class="flow" id="mHistFlow"></div>
+        <p id="mHistNote" class="note ok"></p>
+      </div>
+    </div>
+    <div id="setEdit">
+    <button class="btn sm setBack" id="editBack" type="button" hidden>→ חזרה להגדרות</button>
+    <div class="whoWrap" id="whoWrap"><span class="pickL">משתמשים</span><div class="who" id="whoBtns"></div></div>
     <div id="setMsg" class="msg"></div>
     <div class="card">
-      <div class="ch"><span class="no">01</span><h2>פרטי הרוכש (נשמרים פעם אחת)</h2></div>
+      <div class="ch"><span class="no">01</span><h2 id="editH">פרטי הרוכש (נשמרים פעם אחת)</h2></div>
       <p class="lockNote" id="lockNote" hidden>הפרטים נעולים. כדי לשנות, לוחצים "עריכה" למטה.</p>
       <label>שם הרוכש<input id="b_name" autocomplete="name"></label>
       <div class="row wrap">
@@ -378,21 +411,12 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
       <div class="bar"><button class="btn sm paper" id="clrBuyer">ניקוי חתימה</button></div>
     </div>
     <div class="bar" style="margin-bottom:22px"><button class="btn pri" id="saveSet">שמירת פרטים</button><span id="setOk" class="note ok"></span></div>
-    <div class="card">
-      <div class="ch"><span class="no">03</span><h2>גיבוי</h2></div>
+    </div>
+    <div class="card" id="bkCard">
+      <div class="ch"><span class="no">04</span><h2>גיבוי</h2></div>
       <p class="small" style="margin-top:0">ההיסטוריה נשמרת בטלפון הזה. כדאי לשמור גיבוי מדי פעם, ואפשר גם להעביר אותו לטלפון אחר.</p>
       <div class="bar"><button class="btn sm" id="exp">שמירת קובץ גיבוי</button><label class="btn sm" style="margin:0">טעינת גיבוי<input id="imp" type="file" accept=".json,application/json" hidden></label></div>
       <p id="bkNote" class="note"></p>
-    </div>
-    <div class="card">
-      <div class="ch"><span class="no">04</span><h2>איפוס</h2></div>
-      <p class="small" style="margin-top:0">מוחק את הפרטים של האדם שנבחר למעלה: השם, ת"ז, טלפון, כתובת, עיר, מחיר ברירת מחדל והחתימה שלך. ההיסטוריה של ההסכמים לא נמחקת.</p>
-      <div class="bar" id="rstBar"><button class="btn sm danger" id="rst">איפוס הפרטים שלי</button></div>
-      <div class="msg bad" id="rstAsk" hidden style="margin:10px 0 0">
-        <b>בטוח לאפס?</b> כל הפרטים והחתימה בעמוד הזה יימחקו, ואי אפשר לבטל.
-        <div class="bar"><button class="btn sm pri" id="rstYes" style="background:var(--err);border-color:var(--err)">כן, לאפס</button><button class="btn sm" id="rstNo">ביטול</button></div>
-      </div>
-      <p id="rstNote" class="note"></p>
     </div>
   </section>
 </main>
@@ -617,17 +641,52 @@ function showBuyer(){const any=anyP();
   $('buyerPick').hidden=!any;
   $('pickBtns').innerHTML=people.map((p,i)=>i).map(i=>'<button type="button" class="pickBtn" data-slot="'+i+'" aria-pressed="'+(i===active)+'">'+esc(people[i].name)+'</button>').join('')}
 function renderWho(){$('whoBtns').innerHTML=people.map((p,i)=>'<button type="button" data-slot="'+i+'" aria-pressed="'+(i===editSlot)+'">'+esc(p.name)+'</button>').join('')+'<button type="button" class="whoAdd" data-slot="-1" aria-pressed="'+(editSlot<0)+'">+ הוסף משתמש</button>'}
-function loadSettings(){const p=editSlot>=0&&people[editSlot]||{};setLocked(!!(p.name&&p.sig));['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=p[k]||'');sigBuyer.set(p.sig||'');checkId('b_id','h_b_id');renderWho()}
+function loadSettings(){const p=editSlot>=0&&people[editSlot]||{};setLocked(false);['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value=p[k]||'');sigBuyer.set(p.sig||'');checkId('b_id','h_b_id');renderWho()}
 function priceFromBuyer(){if(!$('f_price').value&&settings.price){$('f_price').value=settings.price;if(!wordsTouched)$('f_words').value=shekelWords(settings.price);saveDraft()}}
 $('pickBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;active=+b.dataset.slot;pickActive();savePeople();showBuyer();priceFromBuyer()});
 $('whoBtns').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;const i=+b.dataset.slot;editSlot=i;
   if(i>=0){active=i;pickActive();savePeople();showBuyer();priceFromBuyer()}
-  $('setOk').textContent='';$('setMsg').textContent='';$('setMsg').className='msg';$('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').textContent='';loadSettings();setLocked(false)});
+  $('setOk').textContent='';$('setMsg').textContent='';$('setMsg').className='msg';loadSettings()});
+
+/* ---------- settings: first run = add user; afterwards a settings menu ---------- */
+let setView='menu';
+function updSetTab(){$('tabSetBtn').textContent=anyP()?'הגדרות':'הפרטים שלי'}
+function renderSet(){const any=anyP(),view=any?setView:'first';
+  $('setMenu').hidden=view!=='menu';$('setEdit').hidden=view==='menu';$('whoWrap').hidden=any;$('editBack').hidden=view!=='edit';$('bkCard').hidden=view==='edit';
+  $('editH').textContent=view==='first'?'פרטי הרוכש (נשמרים פעם אחת)':(editSlot<0?'משתמש חדש':'עריכת משתמש');
+  $('mUsers').innerHTML=people.map((p,i)=>'<button type="button" data-slot="'+i+'">'+esc(p.name)+'</button>').join('');updSetTab()}
+function openEditor(i){editSlot=i;setView='edit';$('setOk').textContent='';$('setMsg').textContent='';$('setMsg').className='msg';loadSettings();renderSet();window.scrollTo(0,0)}
+$('mAdd').onclick=()=>openEditor(-1);
+$('mUsers').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(b)openEditor(+b.dataset.slot)});
+$('editBack').onclick=()=>{setView='menu';renderSet();window.scrollTo(0,0)};
+function flow(box,html,btns){const el=$(box);el.innerHTML='<div class="msg bad">'+html+'<div class="bar"></div></div>';const bar=el.querySelector('.bar');
+  btns.forEach(b=>{const x=document.createElement('button');x.type='button';x.className='btn sm '+(b.cls||'');x.textContent=b.t;x.onclick=b.fn;bar.append(x)})}
+const flowClose=box=>{$(box).innerHTML=''};
+const cancelBtn=box=>({t:'ביטול',fn:()=>flowClose(box)});
+function pickUser(box,q,onPick){flow(box,'<b>'+q+'</b>',[...people.map((p,i)=>({t:p.name,fn:()=>onPick(i)})),cancelBtn(box)])}
+/* reset (delete users) */
+$('mReset').onclick=()=>{$('mResetNote').textContent='';const B='mResetFlow',one=()=>pickUser(B,'איזה משתמש למחוק?',confirmDelUser);
+  if(people.length>1)flow(B,'<b>למחוק הכול או משתמש אחד?</b>',[{t:'הכול',cls:'red',fn:()=>flow(B,'<b>למחוק את כל המשתמשים?</b> הפרטים והחתימות של כולם יימחקו, ואי אפשר לבטל.',[{t:'כן, למחוק הכול',cls:'red',fn:()=>delUsers(null)},cancelBtn(B)])},{t:'משתמש אחד',fn:one},cancelBtn(B)]);
+  else one()};
+function confirmDelUser(i){flow('mResetFlow','<b>למחוק את '+esc(people[i].name)+'?</b> הפרטים והחתימה יימחקו, ואי אפשר לבטל.',[{t:'כן, למחוק',cls:'red',fn:()=>delUsers(i)},cancelBtn('mResetFlow')])}
+function delUsers(i){const name=i==null?'':people[i].name;if(i==null){people=[];active=-1}else{people.splice(i,1);if(active>i)active--;else if(active===i)active=-1}
+  pickActive();savePeople();flowClose('mResetFlow');showBuyer();
+  if(anyP()){setView='menu';renderSet();$('mResetNote').textContent=name+' נמחק.'}else{editSlot=-1;loadSettings();renderSet();$('setMsg').className='msg warn';$('setMsg').textContent='כל המשתמשים נמחקו. אפשר להוסיף משתמש חדש.';window.scrollTo(0,0)}}
+/* delete history */
+const dealOf=(d,p)=>{const b=d&&d.buyer||{};return (b.name||'').trim()===p.name.trim()&&(!p.id||!b.id||b.id===p.id)};
+$('mHist').onclick=()=>{$('mHistNote').textContent='';const B='mHistFlow',one=()=>pickUser(B,'ההיסטוריה של איזה משתמש למחוק?',i=>confirmDelHist(people[i]));
+  if(people.length>1)flow(B,'<b>למחוק את כל ההיסטוריה או של משתמש אחד?</b>',[{t:'כל ההיסטוריה',cls:'red',fn:()=>confirmDelHist(null)},{t:'משתמש אחד',fn:one},cancelBtn(B)]);
+  else one()};
+async function confirmDelHist(p){const B='mHistFlow',all=await store.all(),list=p?all.filter(d=>dealOf(d,p)):all;
+  if(!list.length){flowClose(B);$('mHistNote').textContent=p?'אין הסכמים של '+p.name+' בהיסטוריה.':'ההיסטוריה כבר ריקה.';return}
+  const cnt=list.length===1?'הסכם אחד':list.length+' הסכמים';
+  flow(B,'<b>'+(p?'למחוק את ההיסטוריה של '+esc(p.name)+'?':'למחוק את כל ההיסטוריה?')+'</b> '+cnt+' יימחקו, ואי אפשר לבטל.',[{t:'כן, למחוק',cls:'red',fn:async()=>{for(const d of list)await store.del(d.id);
+    flowClose(B);$('mHistNote').textContent='נמחקו '+cnt+' מההיסטוריה.'}},cancelBtn(B)])}
 
 /* ---------- tabs ---------- */
 function tab(name){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===name));
   ['new','hist','set'].forEach(n=>$('tab-'+n).hidden=n!==name);
-  if(name==='hist')renderHist();if(name==='set'){$('setOk').textContent='';loadSettings()}
+  if(name==='hist')renderHist();if(name==='set'){setView='menu';$('setOk').textContent='';['mResetFlow','mHistFlow'].forEach(flowClose);['mUserNote','mResetNote','mHistNote'].forEach(id=>$(id).textContent='');if(!anyP())editSlot=-1;loadSettings();renderSet()}
   window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.goto)));
@@ -658,14 +717,14 @@ function setLocked(on){locked=on;['name','id','phone','address','city','price'].
 $('clrAll').onclick=()=>{$('clrAsk').hidden=false;$('clrDone').hidden=true;$('clrNo').focus()};
 $('clrNo').onclick=()=>{$('clrAsk').hidden=true};
 $('clrYes').onclick=()=>{newForm();$('clrDone').textContent='הטופס נוקה. אפשר להתחיל הסכם חדש.';$('clrDone').hidden=false};
-$('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';$('b_name').focus();return}
+$('saveSet').onclick=()=>{if(locked){setLocked(false);$('setOk').textContent='';$('b_name').focus();return}const wasFirst=!anyP();
   const n={};['name','id','phone','address','city','price'].forEach(k=>n[k]=$('b_'+k).value.trim());n.sig=sigBuyer.trimmed();
   if(!n.name||!n.sig){$('setMsg').className='msg bad';$('setMsg').textContent='צריך לפחות שם וחתימה.';return}
   const isNew=editSlot<0,prev=isNew?null:people[editSlot],prevActive=active;
   if(isNew){people.push(n);editSlot=people.length-1}else people[editSlot]=n;active=editSlot;pickActive();
   if(!savePeople()){if(isNew){people.pop();editSlot=-1}else people[editSlot]=prev;active=prevActive;pickActive();$('setMsg').className='msg bad';$('setMsg').textContent='השמירה נכשלה בדפדפן הזה.';return}
-  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='נשמר';setLocked(true);renderWho();showBuyer();
-  priceFromBuyer()};
+  $('setMsg').textContent='';$('setMsg').className='msg';renderWho();showBuyer();priceFromBuyer();updSetTab();
+  if(wasFirst)tab('new');else{setView='menu';renderSet();$('mUserNote').textContent='נשמר: '+n.name;window.scrollTo(0,0)}};
 
 /* ---------- create agreement (nothing is required) ---------- */
 const DEAL_FIELDS=['car','year','price','words','s_name','s_id','s_phone','s_address','s_city'];
@@ -738,18 +797,11 @@ $('exp').onclick=async()=>{const data=JSON.stringify({app:'tow-forms',v:1,settin
 $('imp').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(!Array.isArray(j.deals))throw 0;for(const d of j.deals)await store.put(d);
     if(!anyP()){if(Array.isArray(j.people)&&j.people.some(p=>p&&p.name))people=j.people.filter(p=>p&&p.name);else if(j.settings&&j.settings.name)people=[j.settings];active=0;
-      pickActive();editSlot=active;savePeople();loadSettings();showBuyer()}
+      pickActive();editSlot=active;savePeople();loadSettings();showBuyer();setView='menu';renderSet()}
     $('bkNote').className='note ok';$('bkNote').textContent='נטענו '+j.deals.length+' הסכמים.'}
   catch(err){$('bkNote').className='note';$('bkNote').textContent='הקובץ לא נראה כמו גיבוי של האפליקציה.'}
   e.target.value=''});
 
-/* ---------- reset my details ---------- */
-$('rst').onclick=()=>{$('rstAsk').hidden=false;$('rstBar').hidden=true;$('rstNote').textContent='';$('rstNo').focus()};
-$('rstNo').onclick=()=>{$('rstAsk').hidden=true;$('rstBar').hidden=false};
-$('rstYes').onclick=()=>{const del=editSlot;if(del>=0){people.splice(del,1);if(active>del)active--;else if(active===del)active=-1}pickActive();editSlot=-1;savePeople();setLocked(false);
-  ['name','id','phone','address','city','price'].forEach(k=>$('b_'+k).value='');sigBuyer.clear();checkId('b_id','h_b_id');
-  $('setMsg').textContent='';$('setMsg').className='msg';$('setOk').textContent='';
-  $('rstAsk').hidden=true;$('rstBar').hidden=false;$('rstNote').className='note ok';$('rstNote').textContent='הפרטים אופסו. אפשר למלא מחדש.';renderWho();showBuyer();window.scrollTo(0,0)};
 
 /* ---------- scan vehicle licence ---------- */
 let samplerP=null;
@@ -934,7 +986,7 @@ function micSetup(){MIC_FIELDS.forEach(id=>{const inp=$(id);if(!inp||inp.parentE
   if(window.SpeechRecognition||window.webkitSpeechRecognition){micEngine='web';micSetup()}})();
 
 /* ---------- start ---------- */
-store.init().then(()=>{fillDefaults(false);loadSettings();showBuyer();if(!anyP())tab('set')});
+store.init().then(()=>{fillDefaults(false);loadSettings();showBuyer();updSetTab();if(!anyP())tab('set')});
 }
 </script>
 <script>
