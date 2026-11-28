@@ -818,7 +818,7 @@ function parseOcr(t){t=String(t||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\
   m=flat.match(/מספר\s*רכב[^\d]{0,40}(\d{2,3}[- ]?\d{2,3}[- ]?\d{2,3})/);
   if(m)out.car_number=m[1].replace(/\D/g,'');
   if(!out.car_number){const zips=[...flat.matchAll(/[א-ת]\s*-\s*(\d{5,7})/g)].map(x=>x[1]);const c=(flat.match(/\b\d{7,8}\b/g)||[]).find(n=>!(out.owner_id||'').includes(n)&&!zips.includes(n));if(c)out.car_number=c}
-  m=t.match(/שם\s*(?:ה)?בעלים[:\s]+([א-ת'"׳ ]{3,30})/);if(m)out.owner_name=m[1].trim();
+  m=t.match(/שם\s*(?:ה)?בעלים[:\s]+(?:[\d\-–\s]+)?([א-ת'"׳ ]{3,30})/);if(m)out.owner_name=m[1].trim();
   {const lines=t.split('\n');const ml=lines.find(l=>/מען|כתובת/.test(l))||lines.find(l=>/[א-ת]\s*-\s*\d{5,7}/.test(l))||'';
     let src=ml.replace(/^.*?(?:מען|כתובת)[:\s]*/,'');if(ml&&!/\d/.test(src)){const k=lines.indexOf(ml);if(lines[k+1])src=lines[k+1]}
     const a=src.match(/([א-ת"'׳][א-ת"'׳ ]{1,25}?)?\s*(\d{1,4})\s+([א-ת"'׳][א-ת"'׳ ]{1,25}?)\s*-\s*\d{5,7}/);
